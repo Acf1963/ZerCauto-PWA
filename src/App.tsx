@@ -351,6 +351,7 @@ export default function App() {
               clients={clients}
               vehicles={vehicles}
               stockItems={stockItems}
+              suppliers={suppliers}
               paymentRecords={paymentRecords}
               currency={settings.currency}
               settings={settings}
