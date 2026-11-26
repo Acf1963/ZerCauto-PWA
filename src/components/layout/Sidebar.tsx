@@ -4,6 +4,7 @@ import {
   ClipboardList,
   CreditCard,
   FlaskConical,
+  LayoutDashboard,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -44,6 +45,7 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const navItems: NavItemConfig[] = [
+    {id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard},
     {id: 'folhas-obra', label: 'Folhas de Obra', icon: ClipboardList},
     {id: 'clientes-viaturas', label: 'Clientes & Viaturas', icon: Car},
     {

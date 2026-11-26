@@ -1,4 +1,4 @@
-import {Car, ClipboardList, CreditCard, Package} from 'lucide-react';
+import {ClipboardList, CreditCard, LayoutDashboard, Package} from 'lucide-react';
 import type {NavSection} from '../../types/database';
 
 interface MobileNavProps {
@@ -18,8 +18,8 @@ export function MobileNav({
     icon: typeof ClipboardList;
     badge?: number;
   }> = [
+    {id: 'dashboard', label: 'Painel', icon: LayoutDashboard},
     {id: 'folhas-obra', label: 'Folhas', icon: ClipboardList},
-    {id: 'clientes-viaturas', label: 'Clientes', icon: Car},
     {id: 'stock-fornecedores', label: 'Stock', icon: Package, badge: criticalStockCount},
     {id: 'pagamentos', label: 'Finanças', icon: CreditCard},
   ];

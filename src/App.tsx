@@ -11,6 +11,7 @@ import {useTheme} from './hooks/useTheme';
 import {isSupabaseConfigured} from './lib/supabase';
 import {runSyncCycle} from './lib/syncEngine';
 import {ClientesViaturasPage} from './pages/ClientesViaturasPage';
+import {DashboardPage} from './pages/DashboardPage';
 import {DefinicoesPage} from './pages/DefinicoesPage';
 import {DemoTestesPage} from './pages/DemoTestesPage';
 import {FolhasObraPage} from './pages/FolhasObraPage';
@@ -21,9 +22,13 @@ import type {NavSection, WorkshopUser} from './types/database';
 import {getInitials} from './utils/formatters';
 
 const SECTION_META: Record<NavSection, {title: string; subtitle: string}> = {
+  dashboard: {
+    title: 'Painel de Controlo (Dashboard)',
+    subtitle: 'Indicadores chave, alertas de stock e estado da oficina',
+  },
   'folhas-obra': {
-    title: 'Dashboard & Folhas de Obra',
-    subtitle: 'Oficina Central · Novembro 2026',
+    title: 'Folhas de Obra & Diagnóstico',
+    subtitle: 'Registo de intervenções, orçamentos e histórico de viaturas',
   },
   'clientes-viaturas': {
     title: 'Clientes & Histórico de Viaturas',
@@ -325,6 +330,13 @@ export default function App() {
           pendingSyncCount={pendingSyncCount}
           isSyncing={isSyncing}
           demoModeActive={demoModeActive}
+          onExitDemo={() => {
+            setDemoModeActive(false);
+            try {
+              sessionStorage.setItem('zercauto_demo_active', '0');
+            } catch {}
+            notify('Modo Demo desativado.');
+          }}
           onSyncNow={handleSyncNow}
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -333,6 +345,20 @@ export default function App() {
         />
 
         <main className="flex-1 p-gutter-md lg:p-gutter-lg pb-20 lg:pb-gutter-lg max-w-[1600px] w-full mx-auto">
+          {activeSection === 'dashboard' && (
+            <DashboardPage
+              workOrders={workOrders}
+              clients={clients}
+              vehicles={vehicles}
+              stockItems={stockItems}
+              paymentRecords={paymentRecords}
+              currency={settings.currency}
+              settings={settings}
+              onNavigate={handleSelectSection}
+              onNotify={notify}
+            />
+          )}
+
           {activeSection === 'folhas-obra' && (
             <FolhasObraPage
               workOrders={workOrders}

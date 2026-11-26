@@ -382,7 +382,15 @@ export function FolhasObraPage({
     <div className="flex flex-col gap-gutter-lg">
       {/* 4 Top KPI Summary Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-gutter-md">
-        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm">
+        <article
+          onClick={() => {
+            setActiveTab('all');
+            setSearchQuery('');
+            onNotify('A mostrar todas as folhas de obra ativas.');
+          }}
+          className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm cursor-pointer hover:border-light-primary hover:shadow-sm transition-all"
+          title="Clique para ver todas as folhas ativas"
+        >
           <header className="flex items-center justify-between gap-gutter-sm">
             <h2 className="font-label text-label-lg text-light-on-surface-variant">
               Folhas de Obra Ativas
@@ -399,7 +407,14 @@ export function FolhasObraPage({
           </div>
         </article>
 
-        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm">
+        <article
+          onClick={() => {
+            setActiveTab('Faturada');
+            onNotify('A filtrar folhas de obra faturadas.');
+          }}
+          className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm cursor-pointer hover:border-light-primary hover:shadow-sm transition-all"
+          title="Clique para filtrar folhas faturadas"
+        >
           <header className="flex items-center justify-between gap-gutter-sm">
             <h2 className="font-label text-label-lg text-light-on-surface-variant">
               Faturação Mensal
@@ -416,7 +431,18 @@ export function FolhasObraPage({
           </div>
         </article>
 
-        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm">
+        <article
+          onClick={() => {
+            if (unpaidOrders[0]) {
+              setSelectedOrderId(unpaidOrders[0].id);
+              onNotify(`Folha pendente selecionada: ${unpaidOrders[0].code}`);
+            } else {
+              onNotify('Sem folhas pendentes de pagamento.');
+            }
+          }}
+          className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm cursor-pointer hover:border-light-primary hover:shadow-sm transition-all"
+          title="Clique para selecionar primeira folha por liquidar"
+        >
           <header className="flex items-center justify-between gap-gutter-sm">
             <h2 className="font-label text-label-lg text-light-on-surface-variant">
               Por Liquidar
@@ -433,7 +459,14 @@ export function FolhasObraPage({
           </div>
         </article>
 
-        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm">
+        <article
+          onClick={() => {
+            onNavigateToStock();
+            onNotify('A redirecionar para Gestão de Stock e Alertas.');
+          }}
+          className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-sm cursor-pointer hover:border-light-primary hover:shadow-sm transition-all"
+          title="Clique para abrir catálogo de stock e reposição"
+        >
           <header className="flex items-center justify-between gap-gutter-sm">
             <h2 className="font-label text-label-lg text-light-on-surface-variant">
               Alertas de Stock

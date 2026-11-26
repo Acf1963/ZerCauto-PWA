@@ -52,6 +52,7 @@ export type SyncEntityTable =
   | 'workshopSettings';
 
 export type NavSection =
+  | 'dashboard'
   | 'folhas-obra'
   | 'clientes-viaturas'
   | 'stock-fornecedores'

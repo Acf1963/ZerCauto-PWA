@@ -11,6 +11,7 @@ interface TopbarProps {
   pendingSyncCount: number;
   isSyncing: boolean;
   demoModeActive?: boolean;
+  onExitDemo?: () => void;
   onSyncNow: () => void;
   currentUser: WorkshopUser;
   onLogout: () => void;
@@ -25,6 +26,7 @@ export function Topbar({
   pendingSyncCount,
   isSyncing,
   demoModeActive = false,
+  onExitDemo,
   onSyncNow,
   currentUser,
   onLogout,
@@ -81,9 +83,19 @@ export function Topbar({
       {/* Right: Sync Status + Demo Badge + Actions + User */}
       <div className="flex items-center gap-gutter-sm shrink-0">
         {demoModeActive && (
-          <span className="hidden sm:inline-flex items-center px-gutter-sm py-1 rounded bg-warning-container text-on-warning-container border border-warning/30 font-mono text-mono-sm font-semibold whitespace-nowrap shrink-0">
-            MODO DEMO
-          </span>
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-warning-container text-on-warning-container border border-warning/30 font-mono text-mono-sm font-semibold whitespace-nowrap shrink-0">
+            <span>MODO DEMO</span>
+            {onExitDemo && (
+              <button
+                type="button"
+                onClick={onExitDemo}
+                className="px-1.5 py-0.5 rounded bg-amber-600 hover:bg-amber-700 text-white font-sans text-xs transition-colors shadow-sm cursor-pointer"
+                title="Sair do Modo Demo"
+              >
+                Sair
+              </button>
+            )}
+          </div>
         )}
 
         {/* Live Sync Status Indicator */}
