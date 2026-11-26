@@ -32,7 +32,7 @@ export const DEFAULT_SETTINGS: WorkshopSettings = {
   phone: '+244 923 500 100',
   email: 'oficina@zercauto.ao',
   address: 'Av. Deolinda Rodrigues, Km 4, Luanda',
-  logoUrl: '/logo-zerca.png',
+  logoUrl: `${import.meta.env.BASE_URL}logo-zerca.png`,
   foPrefix: 'FO-2026',
   currency: 'AOA',
   ivaRate: 14,

@@ -70,7 +70,7 @@ export function Sidebar({
           <div className="flex items-center gap-gutter-sm min-w-0">
             <div className="w-10 h-10 rounded bg-light-surface-bright p-0.5 flex items-center justify-center shrink-0 border border-light-outline-variant">
               <img
-                src="/logo-zerca.png"
+                src={`${import.meta.env.BASE_URL}logo-zerca.png`}
                 alt="Logótipo ZercAuto"
                 className="w-full h-full object-contain"
               />

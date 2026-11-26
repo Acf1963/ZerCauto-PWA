@@ -204,7 +204,7 @@ export default function App() {
       <div className="min-h-screen bg-light-background flex items-center justify-center p-gutter-md">
         <div className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-lg max-w-sm w-full flex flex-col items-center gap-gutter-sm text-center">
           <div className="w-12 h-12 rounded bg-light-surface-bright p-1 border border-light-outline-variant">
-            <img src="/logo-zerca.png" alt="ZercAuto" className="w-full h-full object-contain" />
+            <img src={`${import.meta.env.BASE_URL}logo-zerca.png`} alt="ZercAuto" className="w-full h-full object-contain" />
           </div>
           <p className="font-headline text-title-md text-light-on-surface">
             A carregar ZercAuto Gest...
@@ -224,7 +224,7 @@ export default function App() {
         <div className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-lg max-w-md w-full flex flex-col gap-gutter-md">
           <div className="flex items-center gap-gutter-sm pb-gutter-sm border-b border-light-outline-variant">
             <div className="w-11 h-11 rounded bg-light-surface-bright p-1 border border-light-outline-variant shrink-0">
-              <img src="/logo-zerca.png" alt="ZercAuto" className="w-full h-full object-contain" />
+              <img src={`${import.meta.env.BASE_URL}logo-zerca.png`} alt="ZercAuto" className="w-full h-full object-contain" />
             </div>
             <div className="flex flex-col">
               <h1 className="font-headline text-headline-md text-light-on-surface">

@@ -136,7 +136,7 @@ export function DefinicoesPage({
           <div className="flex items-center gap-gutter-sm">
             <div className="w-10 h-10 rounded bg-light-surface-bright p-0.5 border border-light-outline-variant flex items-center justify-center shrink-0">
               <img
-                src="/logo-zerca.png"
+                src={`${import.meta.env.BASE_URL}logo-zerca.png`}
                 alt="Logótipo ZercAuto"
                 className="w-full h-full object-contain"
               />
