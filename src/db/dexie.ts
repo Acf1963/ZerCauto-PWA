@@ -7,11 +7,23 @@ import type {
   Supplier,
   SyncEntityTable,
   SyncQueueItem,
+  SyncStateMeta,
   Vehicle,
   WorkOrder,
   WorkshopSettings,
   WorkshopUser,
 } from '../types/database';
+
+export function newUuid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export class ZercAutoDB extends Dexie {
   workOrders!: Table<WorkOrder, string>;
@@ -24,6 +36,7 @@ export class ZercAutoDB extends Dexie {
   workshopUsers!: Table<WorkshopUser, string>;
   workshopSettings!: Table<WorkshopSettings, string>;
   syncQueue!: Table<SyncQueueItem, number>;
+  syncMeta!: Table<SyncStateMeta, string>;
 
   constructor() {
     super('zercauto_gest_db');
@@ -41,6 +54,23 @@ export class ZercAutoDB extends Dexie {
     });
     this.version(2).stores({
       workshopUsers: 'id, name, email, role, sessionState, active, updatedAt',
+    });
+    this.version(3).stores({
+      workOrders:
+        'id, code, clientId, vehicleId, status, paymentStatus, periodKey, updatedAt, deletedAt, _syncStatus',
+      clients: 'id, name, nif, phone, updatedAt, deletedAt, _syncStatus',
+      vehicles: 'id, clientId, plate, updatedAt, deletedAt, _syncStatus',
+      stockItems:
+        'id, sku, name, category, supplierId, quantity, updatedAt, deletedAt, _syncStatus',
+      stockMovements: 'id, stockItemId, sku, type, createdAt, updatedAt, _syncStatus',
+      suppliers: 'id, name, specialty, updatedAt, deletedAt, _syncStatus',
+      paymentRecords:
+        'id, workOrderId, workOrderCode, status, periodKey, updatedAt, deletedAt, _syncStatus',
+      workshopUsers:
+        'id, name, email, role, sessionState, active, updatedAt, deletedAt, _syncStatus',
+      workshopSettings: 'id, updatedAt, _syncStatus',
+      syncQueue: '++id, table, recordId, operation, createdAt',
+      syncMeta: 'key',
     });
   }
 }
@@ -78,7 +108,13 @@ export async function enqueueSync(
 }
 
 export async function saveWorkOrder(wo: WorkOrder): Promise<void> {
-  const updated = {...wo, updatedAt: new Date().toISOString()};
+  const updated: WorkOrder = {
+    ...wo,
+    updatedAt: new Date().toISOString(),
+    deletedAt: wo.deletedAt ?? null,
+    syncVersion: (wo.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.workOrders, db.syncQueue, async () => {
     await db.workOrders.put(updated);
     await enqueueSync('workOrders', updated.id, 'upsert', updated);
@@ -86,7 +122,13 @@ export async function saveWorkOrder(wo: WorkOrder): Promise<void> {
 }
 
 export async function saveClient(client: Client): Promise<void> {
-  const updated = {...client, updatedAt: new Date().toISOString()};
+  const updated: Client = {
+    ...client,
+    updatedAt: new Date().toISOString(),
+    deletedAt: client.deletedAt ?? null,
+    syncVersion: (client.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.clients, db.syncQueue, async () => {
     await db.clients.put(updated);
     await enqueueSync('clients', updated.id, 'upsert', updated);
@@ -94,7 +136,13 @@ export async function saveClient(client: Client): Promise<void> {
 }
 
 export async function saveVehicle(vehicle: Vehicle): Promise<void> {
-  const updated = {...vehicle, updatedAt: new Date().toISOString()};
+  const updated: Vehicle = {
+    ...vehicle,
+    updatedAt: new Date().toISOString(),
+    deletedAt: vehicle.deletedAt ?? null,
+    syncVersion: (vehicle.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.vehicles, db.syncQueue, async () => {
     await db.vehicles.put(updated);
     await enqueueSync('vehicles', updated.id, 'upsert', updated);
@@ -102,7 +150,13 @@ export async function saveVehicle(vehicle: Vehicle): Promise<void> {
 }
 
 export async function saveStockItem(item: StockItem): Promise<void> {
-  const updated = {...item, updatedAt: new Date().toISOString()};
+  const updated: StockItem = {
+    ...item,
+    updatedAt: new Date().toISOString(),
+    deletedAt: item.deletedAt ?? null,
+    syncVersion: (item.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.stockItems, db.syncQueue, async () => {
     await db.stockItems.put(updated);
     await enqueueSync('stockItems', updated.id, 'upsert', updated);
@@ -115,15 +169,19 @@ export async function recordStockMovement(
   quantity: number,
   reference: string
 ): Promise<void> {
+  const now = new Date().toISOString();
   const delta = type === 'entrada' ? quantity : -quantity;
   const nextQty = Math.max(0, Number((item.quantity + delta).toFixed(2)));
   const updatedItem: StockItem = {
     ...item,
     quantity: nextQty,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
+    deletedAt: item.deletedAt ?? null,
+    syncVersion: (item.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
   };
   const movement: StockMovement = {
-    id: `mov-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id: newUuid(),
     stockItemId: item.id,
     sku: item.sku,
     itemName: item.name,
@@ -131,7 +189,11 @@ export async function recordStockMovement(
     quantity,
     unit: item.unit,
     reference,
-    createdAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
+    deletedAt: null,
+    syncVersion: 1,
+    _syncStatus: 'pending',
   };
 
   await db.transaction('rw', db.stockItems, db.stockMovements, db.syncQueue, async () => {
@@ -143,7 +205,13 @@ export async function recordStockMovement(
 }
 
 export async function saveSupplier(supplier: Supplier): Promise<void> {
-  const updated = {...supplier, updatedAt: new Date().toISOString()};
+  const updated: Supplier = {
+    ...supplier,
+    updatedAt: new Date().toISOString(),
+    deletedAt: supplier.deletedAt ?? null,
+    syncVersion: (supplier.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.suppliers, db.syncQueue, async () => {
     await db.suppliers.put(updated);
     await enqueueSync('suppliers', updated.id, 'upsert', updated);
@@ -151,7 +219,13 @@ export async function saveSupplier(supplier: Supplier): Promise<void> {
 }
 
 export async function savePaymentRecord(payment: PaymentRecord): Promise<void> {
-  const updated = {...payment, updatedAt: new Date().toISOString()};
+  const updated: PaymentRecord = {
+    ...payment,
+    updatedAt: new Date().toISOString(),
+    deletedAt: payment.deletedAt ?? null,
+    syncVersion: (payment.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.paymentRecords, db.syncQueue, async () => {
     await db.paymentRecords.put(updated);
     await enqueueSync('paymentRecords', updated.id, 'upsert', updated);
@@ -159,7 +233,13 @@ export async function savePaymentRecord(payment: PaymentRecord): Promise<void> {
 }
 
 export async function saveWorkshopUser(user: WorkshopUser): Promise<void> {
-  const updated = {...user, updatedAt: new Date().toISOString()};
+  const updated: WorkshopUser = {
+    ...user,
+    updatedAt: new Date().toISOString(),
+    deletedAt: user.deletedAt ?? null,
+    syncVersion: (user.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.workshopUsers, db.syncQueue, async () => {
     await db.workshopUsers.put(updated);
     await enqueueSync('workshopUsers', updated.id, 'upsert', updated);
@@ -167,7 +247,13 @@ export async function saveWorkshopUser(user: WorkshopUser): Promise<void> {
 }
 
 export async function saveWorkshopSettings(settings: WorkshopSettings): Promise<void> {
-  const updated = {...settings, updatedAt: new Date().toISOString()};
+  const updated: WorkshopSettings = {
+    ...settings,
+    updatedAt: new Date().toISOString(),
+    deletedAt: settings.deletedAt ?? null,
+    syncVersion: (settings.syncVersion ?? 0) + 1,
+    _syncStatus: 'pending',
+  };
   await db.transaction('rw', db.workshopSettings, db.syncQueue, async () => {
     await db.workshopSettings.put(updated);
     await enqueueSync('workshopSettings', updated.id, 'upsert', updated);

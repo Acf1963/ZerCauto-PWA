@@ -1,150 +1,360 @@
--- ZercAuto Gest — Esquema PostgreSQL + RLS para Supabase (Cloud Sync)
--- Execute no SQL Editor do Supabase para ativar sincronização bidirecional.
+-- ============================================================================
+-- ZercAuto Gest PWA — PostgreSQL / Supabase Schema (Angola · AOA / Kz)
+-- ============================================================================
+-- Execute este script primeiro no Supabase SQL Editor.
+-- Compatível 1:1 com o modelo local Dexie (IndexedDB) e src/lib/syncEngine.ts.
+-- ============================================================================
 
-create table if not exists public.clients (
-  id text primary key,
-  name text not null,
-  nif text not null,
-  phone text not null,
-  email text default '',
-  address text default '',
-  notes text default '',
-  created_at timestamptz default now(),
-  updated_at timestamptz default now()
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ----------------------------------------------------------------------------
+-- Função de Trigger Reutilizável: Atualiza updated_at e incrementa sync_version
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.handle_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  NEW.sync_version = COALESCE(OLD.sync_version, 0) + 1;
+  RETURN NEW;
+END;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- 1. PROFILES (Vinculado a auth.users)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT UNIQUE,
+  phone TEXT,
+  role TEXT NOT NULL DEFAULT 'rececao'
+    CHECK (role IN ('admin', 'chefe_oficina', 'rececao', 'mecanico')),
+  permissions TEXT[] NOT NULL DEFAULT ARRAY['work_orders']::TEXT[],
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.vehicles (
-  id text primary key,
-  client_id text not null references public.clients(id) on delete cascade,
-  plate text not null unique,
-  brand text not null,
-  model text not null,
-  year integer not null,
-  vin text default '',
-  mileage integer not null default 0,
-  updated_at timestamptz default now()
+-- Trigger automático: cria perfil em public.profiles ao registar utilizador em auth.users
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_role TEXT;
+BEGIN
+  v_role := COALESCE(NULLIF(NEW.raw_user_meta_data ->> 'role', ''), 'rececao');
+  IF v_role NOT IN ('admin', 'chefe_oficina', 'rececao', 'mecanico') THEN
+    v_role := 'rececao';
+  END IF;
+
+  INSERT INTO public.profiles (id, full_name, email, phone, role, active)
+  VALUES (
+    NEW.id,
+    COALESCE(
+      NULLIF(NEW.raw_user_meta_data ->> 'full_name', ''),
+      split_part(COALESCE(NEW.email, 'utilizador@zercauto.ao'), '@', 1)
+    ),
+    NEW.email,
+    NEW.raw_user_meta_data ->> 'phone',
+    v_role,
+    true
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_new_user();
+
+-- ----------------------------------------------------------------------------
+-- 2. CLIENTS
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.clients (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  nif TEXT,
+  phone TEXT NOT NULL,
+  email TEXT,
+  address TEXT,
+  client_type TEXT NOT NULL DEFAULT 'particular'
+    CHECK (client_type IN ('particular', 'empresa')),
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.suppliers (
-  id text primary key,
-  name text not null,
-  phone text not null,
-  delivery_eta text not null,
-  specialty text not null,
-  email text default '',
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 3. VEHICLES
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.vehicles (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE RESTRICT,
+  license_plate TEXT NOT NULL UNIQUE,
+  brand TEXT NOT NULL,
+  model TEXT NOT NULL,
+  year INTEGER CHECK (year IS NULL OR (year >= 1950 AND year <= 2100)),
+  vin TEXT,
+  fuel_type TEXT,
+  current_mileage INTEGER NOT NULL DEFAULT 0 CHECK (current_mileage >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.stock_items (
-  id text primary key,
-  sku text not null unique,
-  name text not null,
-  category text not null,
-  supplier_id text references public.suppliers(id) on delete set null,
-  supplier_name text not null,
-  unit text not null default 'un',
-  cost_price numeric not null default 0,
-  sale_price numeric not null default 0,
-  quantity numeric not null default 0,
-  min_quantity numeric not null default 1,
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 4. SUPPLIERS
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.suppliers (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL,
+  nif TEXT,
+  phone TEXT,
+  email TEXT,
+  category TEXT,
+  payment_terms TEXT,
+  delivery_eta TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.stock_movements (
-  id text primary key,
-  stock_item_id text not null references public.stock_items(id) on delete cascade,
-  sku text not null,
-  item_name text not null,
-  type text not null check (type in ('entrada', 'saida')),
-  quantity numeric not null,
-  unit text not null,
-  reference text not null,
-  created_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 5. INVENTORY ITEMS
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.inventory_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  sku TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  category TEXT,
+  supplier_id UUID REFERENCES public.suppliers(id) ON DELETE SET NULL,
+  stock_qty NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (stock_qty >= 0),
+  min_stock_alert NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (min_stock_alert >= 0),
+  cost_price_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (cost_price_aoa >= 0),
+  sell_price_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (sell_price_aoa >= 0),
+  unit TEXT NOT NULL DEFAULT 'un',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.work_orders (
-  id text primary key,
-  code text not null unique,
-  client_id text not null references public.clients(id),
-  client_name text not null,
-  vehicle_id text not null references public.vehicles(id),
-  vehicle_plate text not null,
-  vehicle_label text not null,
-  mileage integer not null,
-  status text not null,
-  diagnosis text not null,
-  parts jsonb not null default '[]'::jsonb,
-  labor jsonb not null default '[]'::jsonb,
-  iva_rate numeric not null default 14,
-  subtotal numeric not null default 0,
-  iva_amount numeric not null default 0,
-  total numeric not null default 0,
-  cmv_total numeric not null default 0,
-  payment_status text not null default 'Pendente',
-  payment_method text,
-  payment_link text,
-  period_key text not null,
-  opened_at text not null,
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 6. STOCK MOVEMENTS
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.stock_movements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  inventory_item_id UUID NOT NULL REFERENCES public.inventory_items(id) ON DELETE CASCADE,
+  sku TEXT NOT NULL,
+  item_name TEXT NOT NULL,
+  movement_type TEXT NOT NULL CHECK (movement_type IN ('entrada', 'saida')),
+  quantity NUMERIC(12,2) NOT NULL CHECK (quantity > 0),
+  unit TEXT NOT NULL DEFAULT 'un',
+  reference TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.payment_records (
-  id text primary key,
-  work_order_id text not null references public.work_orders(id) on delete cascade,
-  work_order_code text not null,
-  client_name text not null,
-  amount numeric not null,
-  method text not null,
-  status text not null,
-  reference text default '',
-  period_key text not null,
-  paid_at text not null,
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 7. WORK ORDERS (Folhas de Obra)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.work_orders (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_number TEXT NOT NULL UNIQUE,
+  client_id UUID NOT NULL REFERENCES public.clients(id) ON DELETE RESTRICT,
+  vehicle_id UUID NOT NULL REFERENCES public.vehicles(id) ON DELETE RESTRICT,
+  assigned_mechanic_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  status TEXT NOT NULL DEFAULT 'aberto'
+    CHECK (status IN ('aberto', 'diagnostico', 'orcamento', 'em_execucao', 'concluido', 'entregue', 'cancelado')),
+  complaint_description TEXT,
+  diagnosis_notes TEXT,
+  entry_mileage INTEGER NOT NULL DEFAULT 0 CHECK (entry_mileage >= 0),
+  parts_total_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (parts_total_aoa >= 0),
+  labor_total_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (labor_total_aoa >= 0),
+  discount_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (discount_aoa >= 0),
+  vat_rate NUMERIC(5,2) NOT NULL DEFAULT 14.00 CHECK (vat_rate >= 0),
+  tax_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (tax_aoa >= 0),
+  grand_total_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (grand_total_aoa >= 0),
+  payment_status TEXT NOT NULL DEFAULT 'pendente'
+    CHECK (payment_status IN ('pendente', 'parcial', 'link_online', 'liquidado')),
+  payment_method TEXT,
+  payment_link TEXT,
+  period_key TEXT,
+  opened_at TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.workshop_users (
-  id text primary key,
-  name text not null,
-  email text not null unique,
-  role text not null,
-  session_state text not null,
-  permissions jsonb not null default '[]'::jsonb,
-  active boolean not null default true,
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 8. WORK ORDER ITEMS (Peças, Mão de Obra e Serviços Externos)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.work_order_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  work_order_id UUID NOT NULL REFERENCES public.work_orders(id) ON DELETE CASCADE,
+  item_type TEXT NOT NULL CHECK (item_type IN ('peca', 'mao_obra', 'servico_externo')),
+  inventory_item_id UUID REFERENCES public.inventory_items(id) ON DELETE SET NULL,
+  sku TEXT,
+  technician_name TEXT,
+  description TEXT NOT NULL,
+  quantity NUMERIC(12,2) NOT NULL DEFAULT 1 CHECK (quantity > 0),
+  unit TEXT DEFAULT 'un',
+  unit_cost_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (unit_cost_aoa >= 0),
+  unit_price_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (unit_price_aoa >= 0),
+  total_price_aoa NUMERIC(14,2) NOT NULL DEFAULT 0 CHECK (total_price_aoa >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
-create table if not exists public.workshop_settings (
-  id text primary key,
-  workshop_name text not null,
-  nif text not null,
-  phone text not null,
-  address text not null,
-  fo_prefix text not null default 'FO-2026',
-  currency text not null default 'AOA',
-  iva_rate numeric not null default 14,
-  hourly_rate numeric not null default 12000,
-  auto_sync boolean not null default true,
-  updated_at timestamptz default now()
+-- ----------------------------------------------------------------------------
+-- 9. PAYMENTS (Pagamentos e Liquidações)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.payments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  work_order_id UUID NOT NULL REFERENCES public.work_orders(id) ON DELETE RESTRICT,
+  amount_aoa NUMERIC(14,2) NOT NULL CHECK (amount_aoa > 0),
+  method TEXT NOT NULL CHECK (method IN ('multicaixa', 'transferencia', 'numerario', 'link_online')),
+  status TEXT NOT NULL DEFAULT 'liquidado'
+    CHECK (status IN ('pendente', 'parcial', 'link_online', 'liquidado')),
+  reference_code TEXT,
+  payment_date TIMESTAMPTZ NOT NULL DEFAULT now(),
+  period_key TEXT,
+  recorded_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
 );
 
--- Enable Row Level Security
-alter table public.clients enable row level security;
-alter table public.vehicles enable row level security;
-alter table public.suppliers enable row level security;
-alter table public.stock_items enable row level security;
-alter table public.stock_movements enable row level security;
-alter table public.work_orders enable row level security;
-alter table public.payment_records enable row level security;
-alter table public.workshop_users enable row level security;
-alter table public.workshop_settings enable row level security;
+-- ----------------------------------------------------------------------------
+-- 10. WORKSHOP SETTINGS (Configuração Única da Oficina)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.workshop_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  company_name TEXT NOT NULL DEFAULT 'ZercAuto Oficina Central',
+  nif TEXT,
+  address TEXT,
+  phone TEXT,
+  email TEXT,
+  logo_url TEXT,
+  fo_prefix TEXT NOT NULL DEFAULT 'FO-2026',
+  default_currency TEXT NOT NULL DEFAULT 'AOA' CHECK (default_currency IN ('AOA', 'EUR')),
+  vat_rate NUMERIC(5,2) NOT NULL DEFAULT 14.00 CHECK (vat_rate >= 0),
+  hourly_rate_aoa NUMERIC(14,2) NOT NULL DEFAULT 12000.00 CHECK (hourly_rate_aoa >= 0),
+  invoice_footer TEXT,
+  auto_sync BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  deleted_at TIMESTAMPTZ NULL,
+  sync_version INTEGER NOT NULL DEFAULT 1
+);
 
--- Authenticated workshop staff policies
-create policy "Authenticated access clients" on public.clients for all to authenticated using (true) with check (true);
-create policy "Authenticated access vehicles" on public.vehicles for all to authenticated using (true) with check (true);
-create policy "Authenticated access suppliers" on public.suppliers for all to authenticated using (true) with check (true);
-create policy "Authenticated access stock_items" on public.stock_items for all to authenticated using (true) with check (true);
-create policy "Authenticated access stock_movements" on public.stock_movements for all to authenticated using (true) with check (true);
-create policy "Authenticated access work_orders" on public.work_orders for all to authenticated using (true) with check (true);
-create policy "Authenticated access payment_records" on public.payment_records for all to authenticated using (true) with check (true);
-create policy "Authenticated access workshop_users" on public.workshop_users for all to authenticated using (true) with check (true);
-create policy "Authenticated access workshop_settings" on public.workshop_settings for all to authenticated using (true) with check (true);
+-- ----------------------------------------------------------------------------
+-- Triggers de Sincronização (updated_at + sync_version) em TODAS as tabelas
+-- ----------------------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_profiles_updated_at ON public.profiles;
+CREATE TRIGGER trg_profiles_updated_at
+  BEFORE UPDATE ON public.profiles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_clients_updated_at ON public.clients;
+CREATE TRIGGER trg_clients_updated_at
+  BEFORE UPDATE ON public.clients
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_vehicles_updated_at ON public.vehicles;
+CREATE TRIGGER trg_vehicles_updated_at
+  BEFORE UPDATE ON public.vehicles
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_suppliers_updated_at ON public.suppliers;
+CREATE TRIGGER trg_suppliers_updated_at
+  BEFORE UPDATE ON public.suppliers
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_inventory_items_updated_at ON public.inventory_items;
+CREATE TRIGGER trg_inventory_items_updated_at
+  BEFORE UPDATE ON public.inventory_items
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_stock_movements_updated_at ON public.stock_movements;
+CREATE TRIGGER trg_stock_movements_updated_at
+  BEFORE UPDATE ON public.stock_movements
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_work_orders_updated_at ON public.work_orders;
+CREATE TRIGGER trg_work_orders_updated_at
+  BEFORE UPDATE ON public.work_orders
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_work_order_items_updated_at ON public.work_order_items;
+CREATE TRIGGER trg_work_order_items_updated_at
+  BEFORE UPDATE ON public.work_order_items
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_payments_updated_at ON public.payments;
+CREATE TRIGGER trg_payments_updated_at
+  BEFORE UPDATE ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+DROP TRIGGER IF EXISTS trg_workshop_settings_updated_at ON public.workshop_settings;
+CREATE TRIGGER trg_workshop_settings_updated_at
+  BEFORE UPDATE ON public.workshop_settings
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+-- ----------------------------------------------------------------------------
+-- Índices para Chaves Estrangeiras, Pesquisa e Delta Sync (updated_at)
+-- ----------------------------------------------------------------------------
+-- Delta sync indexes
+CREATE INDEX IF NOT EXISTS idx_profiles_updated_at ON public.profiles (updated_at);
+CREATE INDEX IF NOT EXISTS idx_clients_updated_at ON public.clients (updated_at);
+CREATE INDEX IF NOT EXISTS idx_vehicles_updated_at ON public.vehicles (updated_at);
+CREATE INDEX IF NOT EXISTS idx_suppliers_updated_at ON public.suppliers (updated_at);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_updated_at ON public.inventory_items (updated_at);
+CREATE INDEX IF NOT EXISTS idx_stock_movements_updated_at ON public.stock_movements (updated_at);
+CREATE INDEX IF NOT EXISTS idx_work_orders_updated_at ON public.work_orders (updated_at);
+CREATE INDEX IF NOT EXISTS idx_work_order_items_updated_at ON public.work_order_items (updated_at);
+CREATE INDEX IF NOT EXISTS idx_payments_updated_at ON public.payments (updated_at);
+CREATE INDEX IF NOT EXISTS idx_workshop_settings_updated_at ON public.workshop_settings (updated_at);
+
+-- Foreign key & lookup indexes
+CREATE INDEX IF NOT EXISTS idx_vehicles_client_id ON public.vehicles (client_id);
+CREATE INDEX IF NOT EXISTS idx_vehicles_license_plate ON public.vehicles (license_plate);
+
+CREATE INDEX IF NOT EXISTS idx_inventory_items_supplier_id ON public.inventory_items (supplier_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_sku ON public.inventory_items (sku);
+
+CREATE INDEX IF NOT EXISTS idx_stock_movements_item_id ON public.stock_movements (inventory_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_work_orders_order_number ON public.work_orders (order_number);
+CREATE INDEX IF NOT EXISTS idx_work_orders_client_id ON public.work_orders (client_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_vehicle_id ON public.work_orders (vehicle_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_mechanic_id ON public.work_orders (assigned_mechanic_id);
+CREATE INDEX IF NOT EXISTS idx_work_orders_status ON public.work_orders (status);
+
+CREATE INDEX IF NOT EXISTS idx_work_order_items_wo_id ON public.work_order_items (work_order_id);
+CREATE INDEX IF NOT EXISTS idx_work_order_items_inv_id ON public.work_order_items (inventory_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_work_order_id ON public.payments (work_order_id);
+CREATE INDEX IF NOT EXISTS idx_payments_recorded_by ON public.payments (recorded_by);

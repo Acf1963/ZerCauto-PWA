@@ -1,5 +1,15 @@
 export type CurrencyCode = 'AOA' | 'EUR';
 
+export type SyncStatus = 'pending' | 'synced' | 'error';
+
+export interface SyncMetadata {
+  createdAt?: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+  syncVersion?: number;
+  _syncStatus?: SyncStatus;
+}
+
 export type WorkOrderStatus =
   | 'Aberta'
   | 'Em Diagnóstico'
@@ -71,7 +81,7 @@ export interface WorkOrderLabor {
   totalPrice: number;
 }
 
-export interface WorkOrder {
+export interface WorkOrder extends SyncMetadata {
   id: string;
   code: string;
   clientId: string;
@@ -80,11 +90,14 @@ export interface WorkOrder {
   vehiclePlate: string;
   vehicleLabel: string;
   mileage: number;
+  assignedMechanicId?: string | null;
   status: WorkOrderStatus;
   diagnosis: string;
+  complaintDescription?: string;
   parts: WorkOrderPart[];
   labor: WorkOrderLabor[];
   ivaRate: number;
+  discount?: number;
   subtotal: number;
   ivaAmount: number;
   total: number;
@@ -94,22 +107,21 @@ export interface WorkOrder {
   paymentLink?: string;
   periodKey: string; // YYYY-MM e.g. '2026-11'
   openedAt: string; // DD/MM/YYYY
-  updatedAt: string; // ISO
 }
 
-export interface Client {
+export interface Client extends SyncMetadata {
   id: string;
   name: string;
   nif: string;
   phone: string;
   email: string;
   address: string;
+  clientType?: 'particular' | 'empresa';
   notes: string;
   createdAt: string;
-  updatedAt: string;
 }
 
-export interface Vehicle {
+export interface Vehicle extends SyncMetadata {
   id: string;
   clientId: string;
   plate: string;
@@ -117,21 +129,22 @@ export interface Vehicle {
   model: string;
   year: number;
   vin: string;
+  fuelType?: string;
   mileage: number;
-  updatedAt: string;
 }
 
-export interface Supplier {
+export interface Supplier extends SyncMetadata {
   id: string;
   name: string;
+  nif?: string;
   phone: string;
   deliveryEta: string;
   specialty: string;
+  paymentTerms?: string;
   email: string;
-  updatedAt: string;
 }
 
-export interface StockItem {
+export interface StockItem extends SyncMetadata {
   id: string;
   sku: string;
   name: string;
@@ -143,10 +156,9 @@ export interface StockItem {
   salePrice: number;
   quantity: number;
   minQuantity: number;
-  updatedAt: string;
 }
 
-export interface StockMovement {
+export interface StockMovement extends SyncMetadata {
   id: string;
   stockItemId: string;
   sku: string;
@@ -158,7 +170,7 @@ export interface StockMovement {
   createdAt: string;
 }
 
-export interface PaymentRecord {
+export interface PaymentRecord extends SyncMetadata {
   id: string;
   workOrderId: string;
   workOrderCode: string;
@@ -169,32 +181,34 @@ export interface PaymentRecord {
   reference: string;
   periodKey: string;
   paidAt: string; // DD/MM/YYYY
-  updatedAt: string;
+  recordedBy?: string | null;
 }
 
-export interface WorkshopUser {
+export interface WorkshopUser extends SyncMetadata {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
   sessionState: SessionState;
   permissions: ModulePermission[];
   active: boolean;
-  updatedAt: string;
 }
 
-export interface WorkshopSettings {
-  id: string; // 'default'
+export interface WorkshopSettings extends SyncMetadata {
+  id: string; // UUID '00000000-0000-4000-8000-000000000001'
   workshopName: string;
   nif: string;
   phone: string;
+  email?: string;
   address: string;
+  logoUrl?: string;
   foPrefix: string;
   currency: CurrencyCode;
   ivaRate: number;
   hourlyRate: number;
+  invoiceFooter?: string;
   autoSync: boolean;
-  updatedAt: string;
 }
 
 export interface SyncQueueItem {
@@ -206,4 +220,9 @@ export interface SyncQueueItem {
   createdAt: string;
   attempts: number;
   lastError?: string;
+}
+
+export interface SyncStateMeta {
+  key: string;
+  value: string;
 }

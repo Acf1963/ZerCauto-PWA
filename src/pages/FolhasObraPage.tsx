@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import {useMemo, useState} from 'react';
 import {
+  newUuid,
   recordStockMovement,
   savePaymentRecord,
   saveWorkOrder,
@@ -206,7 +207,7 @@ export function FolhasObraPage({
     const code = `${settings.foPrefix}-${String(nextSeq).padStart(4, '0')}`;
 
     const newOrder: WorkOrder = {
-      id: `wo-${Date.now()}`,
+      id: newUuid(),
       code,
       clientId: client.id,
       clientName: client.name,
@@ -250,7 +251,7 @@ export function FolhasObraPage({
       if (!stock) return;
 
       const part: WorkOrderPart = {
-        id: `wop-${Date.now()}`,
+        id: newUuid(),
         stockItemId: stock.id,
         sku: stock.sku,
         name: stock.name,
@@ -271,7 +272,7 @@ export function FolhasObraPage({
       const hours = Math.max(0.5, Number(laborHours) || 1);
       const rate = Math.max(0, Number(laborRate) || settings.hourlyRate);
       const laborItem: WorkOrderLabor = {
-        id: `wol-${Date.now()}`,
+        id: newUuid(),
         technicianName: laborTech,
         description: laborDesc.trim() || `Mão de Obra · ${laborTech}`,
         hours,
@@ -320,7 +321,7 @@ export function FolhasObraPage({
     };
     await saveWorkOrder(updated);
     await savePaymentRecord({
-      id: `pay-${Date.now()}`,
+      id: newUuid(),
       workOrderId: order.id,
       workOrderCode: order.code,
       clientName: order.clientName,

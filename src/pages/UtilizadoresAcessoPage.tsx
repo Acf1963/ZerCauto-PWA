@@ -1,6 +1,6 @@
 import {Lock, MonitorSmartphone, ShieldCheck, UserPlus, Users} from 'lucide-react';
 import {useState} from 'react';
-import {saveWorkshopUser} from '../db/dexie';
+import {newUuid, saveWorkshopUser} from '../db/dexie';
 import type {ModulePermission, UserRole, WorkshopUser} from '../types/database';
 import {Modal} from '../components/ui/Modal';
 
@@ -57,7 +57,7 @@ export function UtilizadoresAcessoPage({
     if (!name.trim() || !email.trim()) return;
 
     const newUser: WorkshopUser = {
-      id: `usr-${Date.now()}`,
+      id: newUuid(),
       name: name.trim(),
       email: email.trim().toLowerCase(),
       role,

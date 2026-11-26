@@ -1,6 +1,6 @@
 import {Car, Edit3, Plus, Search, UserPlus} from 'lucide-react';
 import {useMemo, useState} from 'react';
-import {saveClient, saveVehicle} from '../db/dexie';
+import {newUuid, saveClient, saveVehicle} from '../db/dexie';
 import type {Client, CurrencyCode, Vehicle, WorkOrder} from '../types/database';
 import {
   formatCurrency,
@@ -131,7 +131,7 @@ export function ClientesViaturasPage({
           updatedAt: new Date().toISOString(),
         }
       : {
-          id: `cli-${Date.now()}`,
+          id: newUuid(),
           name: cName.trim(),
           nif: cNif.trim(),
           phone: cPhone.trim(),
@@ -167,7 +167,7 @@ export function ClientesViaturasPage({
     if (!activeClient || !vPlate.trim() || !vBrand.trim() || !vModel.trim()) return;
 
     const payload: Vehicle = {
-      id: `veh-${Date.now()}`,
+      id: newUuid(),
       clientId: activeClient.id,
       plate: vPlate.trim().toUpperCase(),
       brand: vBrand.trim(),

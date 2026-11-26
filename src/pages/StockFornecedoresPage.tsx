@@ -11,7 +11,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import {useMemo, useState} from 'react';
-import {recordStockMovement, saveStockItem, saveSupplier} from '../db/dexie';
+import {newUuid, recordStockMovement, saveStockItem, saveSupplier} from '../db/dexie';
 import type {
   CurrencyCode,
   StockItem,
@@ -118,7 +118,7 @@ export function StockFornecedoresPage({
     const supplier = suppliers.find((s) => s.id === pSupplierId) ?? suppliers[0];
 
     const newItem: StockItem = {
-      id: `stk-${Date.now()}`,
+      id: newUuid(),
       sku: pSku.trim().toUpperCase(),
       name: pName.trim(),
       category: pCategory,
@@ -158,7 +158,7 @@ export function StockFornecedoresPage({
     e.preventDefault();
     if (!sName.trim()) return;
     const supplier: Supplier = {
-      id: `sup-${Date.now()}`,
+      id: newUuid(),
       name: sName.trim(),
       phone: sPhone.trim(),
       deliveryEta: sEta.trim() || '48h',

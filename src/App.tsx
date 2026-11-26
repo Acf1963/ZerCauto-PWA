@@ -65,7 +65,7 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [lockedOut, setLockedOut] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string>('usr-1');
+  const [currentUserId, setCurrentUserId] = useState<string>('99999999-9999-4999-8999-999999999901');
 
   const isOnline = useOnlineStatus();
 
@@ -106,18 +106,34 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [toastMsg]);
 
-  // Live IndexedDB queries
-  const workOrders = useLiveQuery(() => db.workOrders.orderBy('code').reverse().toArray(), []) ?? [];
-  const clients = useLiveQuery(() => db.clients.orderBy('name').toArray(), []) ?? [];
-  const vehicles = useLiveQuery(() => db.vehicles.toArray(), []) ?? [];
-  const stockItems = useLiveQuery(() => db.stockItems.orderBy('name').toArray(), []) ?? [];
+  // Live IndexedDB queries (excluding soft-deleted records)
+  const workOrders =
+    useLiveQuery(
+      () => db.workOrders.orderBy('code').reverse().filter((r) => !r.deletedAt).toArray(),
+      []
+    ) ?? [];
+  const clients =
+    useLiveQuery(() => db.clients.orderBy('name').filter((r) => !r.deletedAt).toArray(), []) ?? [];
+  const vehicles =
+    useLiveQuery(() => db.vehicles.filter((r) => !r.deletedAt).toArray(), []) ?? [];
+  const stockItems =
+    useLiveQuery(() => db.stockItems.orderBy('name').filter((r) => !r.deletedAt).toArray(), []) ?? [];
   const movements =
-    useLiveQuery(() => db.stockMovements.orderBy('createdAt').reverse().toArray(), []) ?? [];
-  const suppliers = useLiveQuery(() => db.suppliers.orderBy('name').toArray(), []) ?? [];
+    useLiveQuery(
+      () => db.stockMovements.orderBy('createdAt').reverse().filter((r) => !r.deletedAt).toArray(),
+      []
+    ) ?? [];
+  const suppliers =
+    useLiveQuery(() => db.suppliers.orderBy('name').filter((r) => !r.deletedAt).toArray(), []) ?? [];
   const paymentRecords =
-    useLiveQuery(() => db.paymentRecords.orderBy('updatedAt').reverse().toArray(), []) ?? [];
-  const users = useLiveQuery(() => db.workshopUsers.orderBy('name').toArray(), []) ?? [];
-  const settingsRecord = useLiveQuery(() => db.workshopSettings.get('default'), []);
+    useLiveQuery(
+      () => db.paymentRecords.orderBy('updatedAt').reverse().filter((r) => !r.deletedAt).toArray(),
+      []
+    ) ?? [];
+  const users =
+    useLiveQuery(() => db.workshopUsers.orderBy('name').filter((r) => !r.deletedAt).toArray(), []) ??
+    [];
+  const settingsRecord = useLiveQuery(() => db.workshopSettings.toCollection().first(), []);
   const pendingSyncCount = useLiveQuery(() => db.syncQueue.count(), []) ?? 0;
 
   const settings = settingsRecord ?? DEFAULT_SETTINGS;
@@ -126,7 +142,7 @@ export default function App() {
     () =>
       users.find((u) => u.id === currentUserId) ??
       users[0] ?? {
-        id: 'usr-1',
+        id: '99999999-9999-4999-8999-999999999901',
         name: 'Ricardo Mendes',
         email: 'ricardo.mendes@zercauto.ao',
         role: 'Chefe de Oficina',

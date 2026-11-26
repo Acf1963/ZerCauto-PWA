@@ -7,7 +7,7 @@ import {
   Printer,
 } from 'lucide-react';
 import {useMemo, useState} from 'react';
-import {savePaymentRecord, saveWorkOrder} from '../db/dexie';
+import {newUuid, savePaymentRecord, saveWorkOrder} from '../db/dexie';
 import type {
   CurrencyCode,
   PaymentMethod,
@@ -200,7 +200,7 @@ export function PagamentosRelatoriosPage({
       paymentMethod: payMethod,
     });
     await savePaymentRecord({
-      id: `pay-${Date.now()}`,
+      id: newUuid(),
       workOrderId: wo.id,
       workOrderCode: wo.code,
       clientName: wo.clientName,
