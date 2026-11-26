@@ -115,27 +115,45 @@ function toIsoTimestamp(displayOrIso?: string | null): string {
 // ----------------------------------------------------------------------------
 // Connection Health & Sync Cursor Persistence
 // ----------------------------------------------------------------------------
-export async function checkSupabaseHealth(timeoutMs = 4500): Promise<boolean> {
+async function checkSupabaseHealthDetail(
+  timeoutMs = 4500
+): Promise<{ok: boolean; reason?: string}> {
   if (typeof navigator !== 'undefined' && !navigator.onLine) {
-    return false;
+    return {ok: false, reason: 'Sem ligação à internet.'};
   }
   if (!isSupabaseConfigured || !supabase) {
-    return false;
+    return {ok: false, reason: 'Supabase não configurado no ambiente.'};
   }
 
   try {
     const queryPromise = supabase.from('workshop_settings').select('id').limit(1);
-    const timeoutPromise = new Promise<{error: Error}>((resolve) =>
-      setTimeout(() => resolve({error: new Error('Supabase health check timeout')}), timeoutMs)
+    const timeoutPromise = new Promise<{error: {code?: string; message: string}}>((resolve) =>
+      setTimeout(
+        () => resolve({error: {code: 'TIMEOUT', message: 'Supabase health check timeout'}}),
+        timeoutMs
+      )
     );
     const result = await Promise.race([queryPromise, timeoutPromise]);
     if ('error' in result && result.error) {
-      return false;
+      const errObj = result.error as {code?: string; message?: string};
+      const code = errObj.code ? `${errObj.code}: ` : '';
+      return {
+        ok: false,
+        reason: `${code}${errObj.message || 'Erro desconhecido ao consultar Supabase'}`,
+      };
     }
-    return true;
-  } catch {
-    return false;
+    return {ok: true};
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : 'Erro de rede ao contactar Supabase.',
+    };
   }
+}
+
+export async function checkSupabaseHealth(timeoutMs = 4500): Promise<boolean> {
+  const res = await checkSupabaseHealthDetail(timeoutMs);
+  return res.ok;
 }
 
 export async function getLastSyncedAt(): Promise<string> {
@@ -1040,8 +1058,8 @@ export async function syncNow(): Promise<SyncResult> {
       };
     }
 
-    const healthOk = await checkSupabaseHealth();
-    if (!healthOk) {
+    const health = await checkSupabaseHealthDetail();
+    if (!health.ok) {
       return {
         syncedCount: 0,
         pushedCount: 0,
@@ -1050,8 +1068,7 @@ export async function syncNow(): Promise<SyncResult> {
         mode: 'cloud',
         healthOk: false,
         timestamp,
-        error:
-          'Tabelas Supabase ainda não instaladas, sem permissão RLS no perfil ou servidor inacessível.',
+        error: `Falha ao validar Supabase (${health.reason ?? 'erro desconhecido'}).`,
       };
     }
 

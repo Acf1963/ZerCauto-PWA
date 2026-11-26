@@ -1,5 +1,5 @@
 import {useLiveQuery} from 'dexie-react-hooks';
-import {CheckCircle2, Lock, LogIn} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Lock, LogIn} from 'lucide-react';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {MobileNav} from './components/layout/MobileNav';
 import {Sidebar} from './components/layout/Sidebar';
@@ -457,7 +457,11 @@ export default function App() {
           aria-live="polite"
           className="fixed bottom-16 lg:bottom-6 right-4 lg:right-6 z-50 bg-accent text-on-accent border border-light-outline-variant rounded px-gutter-md py-gutter-sm flex items-center gap-gutter-sm max-w-sm no-print"
         >
-          <CheckCircle2 className="w-4 h-4 text-success-container dark:text-emerald-400 shrink-0" aria-hidden="true" />
+          {/erro|falha|sem ligação|sem permissão|bloquead/i.test(toastMsg) ? (
+            <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+          ) : (
+            <CheckCircle2 className="w-4 h-4 text-success-container dark:text-emerald-400 shrink-0" aria-hidden="true" />
+          )}
           <span className="font-body text-body-sm">{toastMsg}</span>
         </div>
       )}

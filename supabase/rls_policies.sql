@@ -363,5 +363,8 @@ SELECT
   sync_version
 FROM public.work_order_items;
 
+GRANT USAGE ON SCHEMA public TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT SELECT ON public.inventory_items_safe TO authenticated;
 GRANT SELECT ON public.work_order_items_safe TO authenticated;
