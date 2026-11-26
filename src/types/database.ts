@@ -224,7 +224,16 @@ export interface SyncQueueItem {
   lastError?: string;
 }
 
+export interface SyncErrorLog {
+  id?: number;
+  table: string;
+  recordId: string;
+  error: string;
+  createdAt: string;
+}
+
 export interface SyncStateMeta {
   key: string;
   value: string;
 }
+

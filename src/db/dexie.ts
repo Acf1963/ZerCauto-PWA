@@ -6,6 +6,7 @@ import type {
   StockMovement,
   Supplier,
   SyncEntityTable,
+  SyncErrorLog,
   SyncQueueItem,
   SyncStateMeta,
   Vehicle,
@@ -37,6 +38,7 @@ export class ZercAutoDB extends Dexie {
   workshopSettings!: Table<WorkshopSettings, string>;
   syncQueue!: Table<SyncQueueItem, number>;
   syncMeta!: Table<SyncStateMeta, string>;
+  syncErrors!: Table<SyncErrorLog, number>;
 
   constructor() {
     super('zercauto_gest_db');
@@ -71,6 +73,9 @@ export class ZercAutoDB extends Dexie {
       workshopSettings: 'id, updatedAt, _syncStatus',
       syncQueue: '++id, table, recordId, operation, createdAt',
       syncMeta: 'key',
+    });
+    this.version(4).stores({
+      syncErrors: '++id, table, recordId, createdAt',
     });
   }
 }

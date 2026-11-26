@@ -190,6 +190,14 @@ async function pushTableRows<T extends {id: string; updatedAt: string; deletedAt
       pushed++;
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Erro ao enviar registo para Supabase';
+      await db.syncErrors
+        .add({
+          table: remoteTable,
+          recordId: row.id,
+          error: msg,
+          createdAt: new Date().toISOString(),
+        })
+        .catch(() => {});
       await markLocalError(row.id, msg);
     }
   }

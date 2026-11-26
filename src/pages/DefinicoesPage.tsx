@@ -1,4 +1,5 @@
-import {Database, Download, LogIn, LogOut, Monitor, Moon, RotateCcw, Save, Sun, Upload} from 'lucide-react';
+import {useLiveQuery} from 'dexie-react-hooks';
+import {AlertTriangle, Database, Download, LogIn, LogOut, Monitor, Moon, RotateCcw, Save, Sun, Trash2, Upload} from 'lucide-react';
 import {useEffect, useRef, useState} from 'react';
 import {db, saveWorkshopSettings} from '../db/dexie';
 import {resetDatabaseToSeed} from '../db/seed';
@@ -35,6 +36,7 @@ export function DefinicoesPage({
   const [cloudPassword, setCloudPassword] = useState('');
   const [cloudAuthBusy, setCloudAuthBusy] = useState(false);
   const {preference, setPreference} = useTheme();
+  const syncErrors = useLiveQuery(() => db.syncErrors.orderBy('createdAt').reverse().limit(15).toArray()) ?? [];
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -467,6 +469,68 @@ export function DefinicoesPage({
             </button>
             <PWAInstallButton variant="full" onNotify={onNotify} />
           </div>
+        </article>
+
+        {/* Sync Diagnostic Panel */}
+        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-sm">
+          <header className="flex items-center justify-between gap-gutter-sm pb-gutter-sm border-b border-light-outline-variant">
+            <div className="flex items-center gap-gutter-sm">
+              <AlertTriangle className="w-4 h-4 text-light-error dark:text-red-400 shrink-0" aria-hidden="true" />
+              <h3 className="font-headline text-title-md text-light-on-surface">
+                Painel de Diagnóstico de Sincronização
+              </h3>
+            </div>
+            <span className="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
+              {syncErrors.length} erros
+            </span>
+          </header>
+
+          <p className="font-body text-body-sm text-light-on-surface-variant">
+            Histórico recente de falhas de rede, restrições RLS ou conflitos durante a sincronização com o Supabase.
+          </p>
+
+          {syncErrors.length === 0 ? (
+            <div className="p-gutter-sm rounded border border-light-outline-variant bg-light-surface-container-low text-center font-body text-body-sm text-light-on-surface-variant">
+              Sem erros de sincronização registados.
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2 max-h-60 overflow-y-auto divide-y divide-light-outline-variant border border-light-outline-variant rounded p-2 bg-light-surface-container-low">
+              {syncErrors.map((err) => (
+                <div key={err.id} className="pt-2 first:pt-0 flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-mono text-mono-xs text-light-primary dark:text-red-400 font-semibold uppercase">
+                      {err.table}
+                    </span>
+                    <span className="font-mono text-mono-xs text-light-on-surface-variant">
+                      {new Date(err.createdAt).toLocaleTimeString('pt-PT')}
+                    </span>
+                  </div>
+                  <span className="font-body text-body-xs text-light-on-surface break-words">
+                    {err.error}
+                  </span>
+                  <span className="font-mono text-mono-xs text-light-outline truncate">
+                    ID: {err.recordId}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {syncErrors.length > 0 && (
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={async () => {
+                  await db.syncErrors.clear();
+                  onNotify('Histórico de diagnóstico limpo.');
+                }}
+                className="inline-flex items-center gap-1 px-gutter-sm py-1.5 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+              >
+                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Limpar Registos</span>
+              </button>
+            </div>
+          )}
         </article>
 
         {/* Backup & Restore */}
