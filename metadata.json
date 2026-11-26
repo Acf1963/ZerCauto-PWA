@@ -1,0 +1,6 @@
+{
+  "name": "ZercAuto Gest",
+  "description": "PWA offline-first para gestão integral de oficinas automóveis — folhas de obra, clientes e viaturas, stock, pagamentos e relatórios mensais.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
