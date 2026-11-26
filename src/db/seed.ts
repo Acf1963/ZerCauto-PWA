@@ -11,6 +11,7 @@ import type {
   WorkshopSettings,
   WorkshopUser,
 } from '../types/database';
+import {INITIAL_WORKSHOP_PASSWORD, hashPassword} from '../utils/auth';
 import {db} from './dexie';
 
 function computeOrderTotals(parts: WorkOrderPart[], labor: WorkOrderLabor[], ivaRate: number) {
@@ -1171,8 +1172,16 @@ const SEED_USERS: WorkshopUser[] = [
 export async function ensureDatabaseSeeded(): Promise<void> {
   const existingOrders = await db.workOrders.count();
   const existingSettings = await db.workshopSettings.toCollection().first();
+  const defaultHash = await hashPassword(INITIAL_WORKSHOP_PASSWORD);
 
   if (existingOrders > 0 && existingSettings) {
+    // Backfill passwordHash on existing local users created prior to credential enforcement
+    const usersWithoutHash = await db.workshopUsers.filter((u) => !u.passwordHash).toArray();
+    if (usersWithoutHash.length > 0) {
+      await db.workshopUsers.bulkPut(
+        usersWithoutHash.map((u) => ({...u, passwordHash: defaultHash}))
+      );
+    }
     return;
   }
 
@@ -1215,13 +1224,17 @@ export async function ensureDatabaseSeeded(): Promise<void> {
         await db.paymentRecords.bulkPut(SEED_PAYMENTS);
       }
       if ((await db.workshopUsers.count()) === 0) {
-        await db.workshopUsers.bulkPut(SEED_USERS);
+        await db.workshopUsers.bulkPut(
+          SEED_USERS.map((u) => ({...u, passwordHash: defaultHash}))
+        );
       }
     }
   );
 }
 
 export async function resetDatabaseToSeed(): Promise<void> {
+  const defaultHash = await hashPassword(INITIAL_WORKSHOP_PASSWORD);
+
   await db.transaction(
     'rw',
     [
@@ -1259,7 +1272,9 @@ export async function resetDatabaseToSeed(): Promise<void> {
       await db.stockMovements.bulkPut(SEED_MOVEMENTS);
       await db.workOrders.bulkPut(SEED_WORK_ORDERS);
       await db.paymentRecords.bulkPut(SEED_PAYMENTS);
-      await db.workshopUsers.bulkPut(SEED_USERS);
+      await db.workshopUsers.bulkPut(
+        SEED_USERS.map((u) => ({...u, passwordHash: defaultHash}))
+      );
     }
   );
 }

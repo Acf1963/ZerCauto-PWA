@@ -2,6 +2,7 @@ import {Lock, MonitorSmartphone, ShieldCheck, UserPlus, Users} from 'lucide-reac
 import {useState} from 'react';
 import {newUuid, saveWorkshopUser} from '../db/dexie';
 import type {ModulePermission, UserRole, WorkshopUser} from '../types/database';
+import {hashPassword} from '../utils/auth';
 import {Modal} from '../components/ui/Modal';
 
 interface UtilizadoresAcessoPageProps {
@@ -43,6 +44,7 @@ export function UtilizadoresAcessoPage({
   const [editingUser, setEditingUser] = useState<WorkshopUser | null>(null);
   const [editRole, setEditRole] = useState<UserRole>('Mecânico');
   const [editPermissions, setEditPermissions] = useState<ModulePermission[]>([]);
+  const [editPassword, setEditPassword] = useState('');
 
   const activeOfflineSessions = users.filter(
     (u) => u.active && u.sessionState !== 'Suspenso'
@@ -54,12 +56,14 @@ export function UtilizadoresAcessoPage({
 
   const handleIssueCredential = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
+    if (!name.trim() || !email.trim() || !tempPassword) return;
 
+    const passwordHash = await hashPassword(tempPassword);
     const newUser: WorkshopUser = {
       id: newUuid(),
       name: name.trim(),
       email: email.trim().toLowerCase(),
+      passwordHash,
       role,
       sessionState: 'Offline Cache',
       permissions: permissions.length > 0 ? permissions : ['work_orders'],
@@ -94,12 +98,17 @@ export function UtilizadoresAcessoPage({
   const handleSaveEditedUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingUser) return;
+    const nextHash = editPassword
+      ? await hashPassword(editPassword)
+      : editingUser.passwordHash;
     await saveWorkshopUser({
       ...editingUser,
       role: editRole,
       permissions: editPermissions,
+      passwordHash: nextHash,
     });
     setEditingUser(null);
+    setEditPassword('');
     onNotify(`Perfil de ${editingUser.name} atualizado.`);
   };
 
@@ -224,6 +233,7 @@ export function UtilizadoresAcessoPage({
                               setEditingUser(u);
                               setEditRole(u.role);
                               setEditPermissions(u.permissions);
+                              setEditPassword('');
                             }}
                             className="px-2 py-1 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
                           >
@@ -405,10 +415,27 @@ export function UtilizadoresAcessoPage({
               </div>
             </div>
 
+            <label className="flex flex-col gap-gutter-xs">
+              <span className="font-label text-label-lg text-light-on-surface">
+                Nova palavra-passe (opcional)
+              </span>
+              <input
+                type="password"
+                minLength={6}
+                value={editPassword}
+                onChange={(e) => setEditPassword(e.target.value)}
+                placeholder="Deixe vazio para manter a atual"
+                className="w-full min-h-[42px] px-gutter-sm bg-light-surface-container-lowest border border-light-outline-variant rounded font-mono text-mono-md text-light-on-surface"
+              />
+            </label>
+
             <div className="flex justify-end gap-gutter-sm pt-gutter-sm border-t border-light-outline-variant">
               <button
                 type="button"
-                onClick={() => setEditingUser(null)}
+                onClick={() => {
+                  setEditingUser(null);
+                  setEditPassword('');
+                }}
                 className="px-gutter-md py-gutter-sm rounded border border-light-outline-variant font-label text-label-lg text-light-on-surface"
               >
                 Cancelar

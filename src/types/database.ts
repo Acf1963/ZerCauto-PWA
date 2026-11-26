@@ -189,6 +189,7 @@ export interface WorkshopUser extends SyncMetadata {
   name: string;
   email: string;
   phone?: string;
+  passwordHash?: string;
   role: UserRole;
   sessionState: SessionState;
   permissions: ModulePermission[];
