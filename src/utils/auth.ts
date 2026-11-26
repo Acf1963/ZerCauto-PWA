@@ -9,6 +9,10 @@ const INSTALL_CREATOR_EMAIL = 'antoniocarlos.fernandes@hotmail.com';
 const INSTALL_CREATOR_HASH =
   'sha256:d0cc1a9a5a2afc30b7a40a9820ce0f602cff229fce1f32bac334ddff81b43157';
 
+export const DEMO_TEST_EMAIL = 'demo@zercauto.ao';
+const DEMO_PASSWORD_HASH =
+  'sha256:2c5c53be91fe61e792c46f86a20e2c085aeb5c775f5f178b16af041f215ca854';
+
 function sha256Fallback(message: string): string {
   const utf8 = unescape(encodeURIComponent(message));
   const bytes: number[] = [];
@@ -146,6 +150,28 @@ export async function verifyInstallCredentials(
   }
 
   return {ok: true, authorizedEmail: INSTALL_CREATOR_EMAIL};
+}
+
+export async function verifyDemoCredentials(
+  emailInput: string,
+  passwordInput: string
+): Promise<InstallVerificationResult> {
+  const normalizedEmail = emailInput.trim().toLowerCase();
+  if (!normalizedEmail || !passwordInput) {
+    return {ok: false, error: 'Preencha o email de teste e a palavra-passe.'};
+  }
+
+  const emailMatches = timingSafeEqual(normalizedEmail, DEMO_TEST_EMAIL);
+  const passwordMatches = await verifyPassword(passwordInput, DEMO_PASSWORD_HASH);
+
+  if (!emailMatches || !passwordMatches) {
+    return {
+      ok: false,
+      error: 'Credenciais de teste inválidas. Verifique o email e a palavra-passe.',
+    };
+  }
+
+  return {ok: true, authorizedEmail: DEMO_TEST_EMAIL};
 }
 
 export type CredentialVerificationResult =

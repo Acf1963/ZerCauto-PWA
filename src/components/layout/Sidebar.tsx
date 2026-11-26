@@ -3,6 +3,7 @@ import {
   Car,
   ClipboardList,
   CreditCard,
+  FlaskConical,
   Package,
   PanelLeftClose,
   PanelLeftOpen,
@@ -55,6 +56,7 @@ export function Sidebar({
     {id: 'relatorios', label: 'Relatórios Mensais', icon: BarChart3},
     {id: 'utilizadores', label: 'Utilizadores & Acesso', icon: Users},
     {id: 'definicoes', label: 'Definições', icon: Settings},
+    {id: 'demo', label: 'Módulo Demo', icon: FlaskConical},
   ];
 
   const handleNav = (id: NavSection) => {

@@ -12,6 +12,7 @@ import {isSupabaseConfigured} from './lib/supabase';
 import {runSyncCycle} from './lib/syncEngine';
 import {ClientesViaturasPage} from './pages/ClientesViaturasPage';
 import {DefinicoesPage} from './pages/DefinicoesPage';
+import {DemoTestesPage} from './pages/DemoTestesPage';
 import {FolhasObraPage} from './pages/FolhasObraPage';
 import {PagamentosRelatoriosPage} from './pages/PagamentosRelatoriosPage';
 import {StockFornecedoresPage} from './pages/StockFornecedoresPage';
@@ -48,6 +49,10 @@ const SECTION_META: Record<NavSection, {title: string; subtitle: string}> = {
     title: 'Definições da Oficina',
     subtitle: 'Dados fiscais, moeda padrão, sincronização e backup local IndexedDB',
   },
+  demo: {
+    title: 'Módulo Demo & Testes',
+    subtitle: 'Sandbox controlada para simular folhas de obra, stock crítico, pagamentos e sync offline',
+  },
 };
 
 function getInitialSectionFromHash(): NavSection {
@@ -67,6 +72,20 @@ export default function App() {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [lockedOut, setLockedOut] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string>('99999999-9999-4999-8999-999999999901');
+  const [demoAuthorizedEmail, setDemoAuthorizedEmail] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('zercauto_demo_email');
+    } catch {
+      return null;
+    }
+  });
+  const [demoModeActive, setDemoModeActive] = useState<boolean>(() => {
+    try {
+      return sessionStorage.getItem('zercauto_demo_active') === '1';
+    } catch {
+      return false;
+    }
+  });
 
   const isOnline = useOnlineStatus();
   useTheme();
@@ -137,6 +156,8 @@ export default function App() {
     [];
   const settingsRecord = useLiveQuery(() => db.workshopSettings.toCollection().first(), []);
   const pendingSyncCount = useLiveQuery(() => db.syncQueue.count(), []) ?? 0;
+  const syncQueueItems =
+    useLiveQuery(() => db.syncQueue.orderBy('id').reverse().limit(10).toArray(), []) ?? [];
 
   const settings = settingsRecord ?? DEFAULT_SETTINGS;
 
@@ -303,6 +324,7 @@ export default function App() {
           isOnline={isOnline}
           pendingSyncCount={pendingSyncCount}
           isSyncing={isSyncing}
+          demoModeActive={demoModeActive}
           onSyncNow={handleSyncNow}
           currentUser={currentUser}
           onLogout={handleLogout}
@@ -368,6 +390,54 @@ export default function App() {
               settings={settings}
               pendingSyncCount={pendingSyncCount}
               onSyncNow={handleSyncNow}
+              onNotify={notify}
+            />
+          )}
+
+          {activeSection === 'demo' && (
+            <DemoTestesPage
+              demoAuthorizedEmail={demoAuthorizedEmail}
+              demoModeActive={demoModeActive}
+              onUnlockDemo={(authorized) => {
+                setDemoAuthorizedEmail(authorized);
+                setDemoModeActive(true);
+                try {
+                  sessionStorage.setItem('zercauto_demo_email', authorized);
+                  sessionStorage.setItem('zercauto_demo_active', '1');
+                } catch {
+                  // Ignore storage errors
+                }
+              }}
+              onLockDemo={() => {
+                setDemoAuthorizedEmail(null);
+                setDemoModeActive(false);
+                try {
+                  sessionStorage.removeItem('zercauto_demo_email');
+                  sessionStorage.removeItem('zercauto_demo_active');
+                } catch {
+                  // Ignore storage errors
+                }
+                notify('Módulo Demo bloqueado.');
+              }}
+              onToggleDemoBanner={(active) => {
+                setDemoModeActive(active);
+                try {
+                  sessionStorage.setItem('zercauto_demo_active', active ? '1' : '0');
+                } catch {
+                  // Ignore storage errors
+                }
+              }}
+              workOrders={workOrders}
+              clients={clients}
+              vehicles={vehicles}
+              stockItems={stockItems}
+              paymentRecords={paymentRecords}
+              syncQueueItems={syncQueueItems}
+              pendingSyncCount={pendingSyncCount}
+              settings={settings}
+              currency={settings.currency}
+              onSyncNow={handleSyncNow}
+              onNavigate={handleSelectSection}
               onNotify={notify}
             />
           )}

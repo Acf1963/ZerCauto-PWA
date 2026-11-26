@@ -10,6 +10,7 @@ interface TopbarProps {
   isOnline: boolean;
   pendingSyncCount: number;
   isSyncing: boolean;
+  demoModeActive?: boolean;
   onSyncNow: () => void;
   currentUser: WorkshopUser;
   onLogout: () => void;
@@ -23,6 +24,7 @@ export function Topbar({
   isOnline,
   pendingSyncCount,
   isSyncing,
+  demoModeActive = false,
   onSyncNow,
   currentUser,
   onLogout,
@@ -76,8 +78,14 @@ export function Topbar({
         </div>
       </div>
 
-      {/* Right: Sync Status + Actions + User */}
+      {/* Right: Sync Status + Demo Badge + Actions + User */}
       <div className="flex items-center gap-gutter-sm shrink-0">
+        {demoModeActive && (
+          <span className="hidden sm:inline-flex items-center px-gutter-sm py-1 rounded bg-warning-container text-on-warning-container border border-warning/30 font-mono text-mono-sm font-semibold whitespace-nowrap shrink-0">
+            MODO DEMO
+          </span>
+        )}
+
         {/* Live Sync Status Indicator */}
         <div
           className={`inline-flex items-center gap-gutter-xs px-gutter-sm py-1.5 rounded-full font-label text-label-sm whitespace-nowrap shrink-0 ${statusClasses}`}

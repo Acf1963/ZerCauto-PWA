@@ -58,7 +58,8 @@ export type NavSection =
   | 'pagamentos'
   | 'relatorios'
   | 'utilizadores'
-  | 'definicoes';
+  | 'definicoes'
+  | 'demo';
 
 export interface WorkOrderPart {
   id: string;
