@@ -7,6 +7,7 @@ import {Topbar} from './components/layout/Topbar';
 import {db, saveWorkshopUser} from './db/dexie';
 import {DEFAULT_SETTINGS, ensureDatabaseSeeded} from './db/seed';
 import {useOnlineStatus} from './hooks/useOnlineStatus';
+import {useTheme} from './hooks/useTheme';
 import {isSupabaseConfigured} from './lib/supabase';
 import {runSyncCycle} from './lib/syncEngine';
 import {ClientesViaturasPage} from './pages/ClientesViaturasPage';
@@ -68,6 +69,7 @@ export default function App() {
   const [currentUserId, setCurrentUserId] = useState<string>('99999999-9999-4999-8999-999999999901');
 
   const isOnline = useOnlineStatus();
+  useTheme();
 
   useEffect(() => {
     let active = true;
@@ -242,10 +244,10 @@ export default function App() {
                 key={op.id}
                 type="button"
                 onClick={() => handleSelectOperatorLogin(op)}
-                className="w-full p-gutter-sm rounded border border-light-outline-variant hover:border-light-primary hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm transition-colors duration-state-change text-left"
+                className="w-full p-gutter-sm rounded border border-light-outline-variant hover:border-light-primary dark:hover:border-red-400 hover:bg-light-surface-container-low flex items-center justify-between gap-gutter-sm transition-colors duration-state-change text-left"
               >
                 <div className="flex items-center gap-gutter-sm min-w-0">
-                  <div className="w-9 h-9 rounded bg-accent text-on-accent flex items-center justify-center font-label text-label-sm shrink-0">
+                  <div className="w-9 h-9 rounded bg-accent text-on-accent border border-on-accent/15 flex items-center justify-center font-label text-label-sm shrink-0">
                     {getInitials(op.name)}
                   </div>
                   <div className="flex flex-col min-w-0">
@@ -257,7 +259,7 @@ export default function App() {
                     </span>
                   </div>
                 </div>
-                <LogIn className="w-4 h-4 text-light-primary shrink-0" aria-hidden="true" />
+                <LogIn className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0" aria-hidden="true" />
               </button>
             ))}
           </div>
@@ -385,7 +387,7 @@ export default function App() {
           aria-live="polite"
           className="fixed bottom-16 lg:bottom-6 right-4 lg:right-6 z-50 bg-accent text-on-accent border border-light-outline-variant rounded px-gutter-md py-gutter-sm flex items-center gap-gutter-sm max-w-sm no-print"
         >
-          <CheckCircle2 className="w-4 h-4 text-success-container shrink-0" aria-hidden="true" />
+          <CheckCircle2 className="w-4 h-4 text-success-container dark:text-emerald-400 shrink-0" aria-hidden="true" />
           <span className="font-body text-body-sm">{toastMsg}</span>
         </div>
       )}

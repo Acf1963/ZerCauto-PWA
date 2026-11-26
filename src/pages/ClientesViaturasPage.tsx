@@ -239,7 +239,7 @@ export function ClientesViaturasPage({
                   <div className="flex flex-col gap-gutter-xs min-w-0">
                     <span
                       className={`font-title text-title-md truncate ${
-                        isSelected ? 'text-light-primary' : 'text-light-on-surface'
+                        isSelected ? 'text-light-primary dark:text-red-400' : 'text-light-on-surface'
                       }`}
                     >
                       {client.name}
@@ -342,12 +342,12 @@ export function ClientesViaturasPage({
                           onClick={() => setSelectedVehicleId(veh.id)}
                           className={`text-left p-gutter-sm rounded border transition-colors duration-state-change flex flex-col gap-1 ${
                             activeVeh
-                              ? 'border-light-primary bg-light-surface-container-low'
+                              ? 'border-light-primary dark:border-red-400 bg-light-surface-container-low'
                               : 'border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container-low/60'
                           }`}
                         >
                           <div className="flex items-center justify-between gap-gutter-sm">
-                            <span className="font-mono text-title-md text-light-primary font-semibold">
+                            <span className="font-mono text-title-md text-light-primary dark:text-red-400 font-semibold">
                               {veh.plate}
                             </span>
                             <span className="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">
@@ -372,7 +372,7 @@ export function ClientesViaturasPage({
             <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg overflow-hidden">
               <header className="px-gutter-md py-gutter-sm bg-light-surface-container-low border-b border-light-outline-variant flex items-center justify-between gap-gutter-sm">
                 <div className="flex items-center gap-gutter-sm min-w-0">
-                  <Car className="w-4 h-4 text-light-primary shrink-0" aria-hidden="true" />
+                  <Car className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0" aria-hidden="true" />
                   <h3 className="font-headline text-title-md text-light-on-surface truncate">
                     Histórico Cronológico de Serviços
                   </h3>
@@ -396,7 +396,7 @@ export function ClientesViaturasPage({
                     <div key={wo.id} className="p-gutter-md flex flex-col gap-gutter-xs">
                       <div className="flex flex-wrap items-center justify-between gap-gutter-sm">
                         <div className="flex items-center gap-gutter-sm">
-                          <span className="font-mono text-mono-md text-light-primary font-semibold">
+                          <span className="font-mono text-mono-md text-light-primary dark:text-red-400 font-semibold">
                             {wo.code}
                           </span>
                           <span className="font-mono text-mono-sm text-light-on-surface-variant tabular-nums">

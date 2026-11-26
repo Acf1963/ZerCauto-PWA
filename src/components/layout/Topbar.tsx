@@ -1,4 +1,5 @@
-import {LogOut, Menu, RefreshCw} from 'lucide-react';
+import {LogOut, Menu, Moon, RefreshCw, Sun} from 'lucide-react';
+import {useTheme} from '../../hooks/useTheme';
 import type {WorkshopUser} from '../../types/database';
 import {getInitials} from '../../utils/formatters';
 import {PWAInstallButton} from '../ui/PWAInstallButton';
@@ -28,6 +29,7 @@ export function Topbar({
   onOpenMobileMenu,
   onNotify,
 }: TopbarProps) {
+  const {isDark, toggleTheme} = useTheme();
   const statusLabel = isSyncing
     ? 'A Sincronizar...'
     : !isOnline
@@ -96,10 +98,25 @@ export function Topbar({
           title="Sincronizar alterações locais"
         >
           <RefreshCw
-            className={`w-4 h-4 shrink-0 ${isSyncing ? 'animate-spin text-light-primary' : ''}`}
+            className={`w-4 h-4 shrink-0 ${isSyncing ? 'animate-spin text-light-primary dark:text-red-400' : ''}`}
             aria-hidden="true"
           />
           <span className="hidden md:inline">Sincronizar Agora</span>
+        </button>
+
+        {/* Theme Toggle Button */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Mudar para modo claro' : 'Mudar para modo escuro'}
+          title={isDark ? 'Modo Claro' : 'Modo Escuro'}
+          className="inline-flex items-center justify-center gap-gutter-xs px-gutter-sm py-1.5 min-h-[36px] min-w-[36px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container-low font-label text-label-lg text-light-on-surface whitespace-nowrap shrink-0 transition-colors duration-state-change"
+        >
+          {isDark ? (
+            <Sun className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+          ) : (
+            <Moon className="w-4 h-4 shrink-0" aria-hidden="true" />
+          )}
         </button>
 
         {/* PWA Install Trigger */}
@@ -107,7 +124,7 @@ export function Topbar({
 
         {/* Active User Profile & Logout */}
         <div className="hidden xl:flex items-center gap-gutter-sm pl-gutter-sm border-l border-light-outline-variant">
-          <div className="w-8 h-8 rounded bg-accent text-on-accent flex items-center justify-center font-label text-label-sm shrink-0">
+          <div className="w-8 h-8 rounded bg-accent text-on-accent border border-on-accent/15 flex items-center justify-center font-label text-label-sm shrink-0">
             {getInitials(currentUser.name)}
           </div>
           <div className="flex flex-col min-w-0">

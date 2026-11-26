@@ -138,7 +138,7 @@ export function UtilizadoresAcessoPage({
               {activeOfflineSessions} dispositivos
             </p>
           </div>
-          <MonitorSmartphone className="w-6 h-6 text-success shrink-0" aria-hidden="true" />
+          <MonitorSmartphone className="w-6 h-6 text-success dark:text-emerald-400 shrink-0" aria-hidden="true" />
         </article>
 
         <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex items-center justify-between gap-gutter-sm">
@@ -146,11 +146,11 @@ export function UtilizadoresAcessoPage({
             <span className="font-label text-label-lg text-light-on-surface-variant">
               Acessos Suspensos
             </span>
-            <p className="font-display text-headline-lg text-light-error tabular-nums">
+            <p className="font-display text-headline-lg text-light-error dark:text-red-400 tabular-nums">
               {suspendedCount}
             </p>
           </div>
-          <Lock className="w-6 h-6 text-light-error shrink-0" aria-hidden="true" />
+          <Lock className="w-6 h-6 text-light-error dark:text-red-400 shrink-0" aria-hidden="true" />
         </article>
       </section>
 
@@ -235,8 +235,8 @@ export function UtilizadoresAcessoPage({
                               onClick={() => handleUserAction(u)}
                               className={`px-2 py-1 rounded border font-label text-label-sm ${
                                 isSuspended
-                                  ? 'border-success/40 text-success hover:bg-success-container'
-                                  : 'border-light-error/30 text-light-error hover:bg-light-error-container'
+                                  ? 'border-success/40 text-success dark:text-emerald-400 hover:bg-success-container'
+                                  : 'border-light-error/30 text-light-error dark:text-red-400 hover:bg-light-error-container'
                               }`}
                             >
                               {isSuspended ? 'Reativar' : 'Forçar Logout'}

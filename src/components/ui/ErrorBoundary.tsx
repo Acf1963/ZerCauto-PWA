@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       return (
         <div className="min-h-screen bg-light-background flex items-center justify-center p-gutter-md">
           <div className="max-w-md w-full bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-lg flex flex-col gap-gutter-md">
-            <h1 className="font-headline text-headline-md text-light-primary">
+            <h1 className="font-headline text-headline-md text-light-primary dark:text-red-400">
               Ocorreu um erro inesperado
             </h1>
             <p className="font-body text-body-md text-light-on-surface">

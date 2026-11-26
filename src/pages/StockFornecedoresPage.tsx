@@ -208,14 +208,14 @@ export function StockFornecedoresPage({
             </span>
             <AlertTriangle
               className={`w-4 h-4 shrink-0 hidden sm:block ${
-                criticalItems.length > 0 ? 'text-light-error' : 'text-success'
+                criticalItems.length > 0 ? 'text-light-error dark:text-red-400' : 'text-success dark:text-emerald-400'
               }`}
               aria-hidden="true"
             />
           </header>
           <p
             className={`font-display text-headline-md lg:text-headline-lg tabular-nums ${
-              criticalItems.length > 0 ? 'text-light-error' : 'text-success'
+              criticalItems.length > 0 ? 'text-light-error dark:text-red-400' : 'text-success dark:text-emerald-400'
             }`}
           >
             {criticalItems.length} {criticalItems.length === 1 ? 'peça' : 'peças'}
@@ -289,7 +289,7 @@ export function StockFornecedoresPage({
               onClick={() => setActiveTab('pecas')}
               className={`px-gutter-md py-gutter-sm min-h-[40px] border-b-2 font-label text-label-lg whitespace-nowrap shrink-0 ${
                 activeTab === 'pecas'
-                  ? 'border-light-primary text-light-primary'
+                  ? 'border-light-primary dark:border-red-400 text-light-primary dark:text-red-400'
                   : 'border-transparent text-light-on-surface-variant hover:text-light-on-surface'
               }`}
             >
@@ -302,7 +302,7 @@ export function StockFornecedoresPage({
               onClick={() => setActiveTab('critico')}
               className={`px-gutter-md py-gutter-sm min-h-[40px] border-b-2 font-label text-label-lg whitespace-nowrap shrink-0 ${
                 activeTab === 'critico'
-                  ? 'border-light-primary text-light-primary'
+                  ? 'border-light-primary dark:border-red-400 text-light-primary dark:text-red-400'
                   : 'border-transparent text-light-on-surface-variant hover:text-light-on-surface'
               }`}
             >
@@ -315,7 +315,7 @@ export function StockFornecedoresPage({
               onClick={() => setActiveTab('fornecedores')}
               className={`px-gutter-md py-gutter-sm min-h-[40px] border-b-2 font-label text-label-lg whitespace-nowrap shrink-0 ${
                 activeTab === 'fornecedores'
-                  ? 'border-light-primary text-light-primary'
+                  ? 'border-light-primary dark:border-red-400 text-light-primary dark:text-red-400'
                   : 'border-transparent text-light-on-surface-variant hover:text-light-on-surface'
               }`}
             >
@@ -410,7 +410,7 @@ export function StockFornecedoresPage({
                               <button
                                 type="button"
                                 onClick={() => openMovementModal(item, 'entrada')}
-                                className="px-gutter-sm py-1 rounded border border-light-outline-variant hover:border-light-primary hover:text-light-primary font-label text-label-sm text-light-on-surface"
+                                className="px-gutter-sm py-1 rounded border border-light-outline-variant hover:border-light-primary dark:hover:border-red-400 hover:text-light-primary dark:hover:text-red-400 font-label text-label-sm text-light-on-surface"
                               >
                                 {isCritical ? 'Repor' : 'Movimentar'}
                               </button>
@@ -460,7 +460,7 @@ export function StockFornecedoresPage({
                         <button
                           type="button"
                           onClick={() => openMovementModal(item, 'entrada')}
-                          className="px-gutter-sm py-1.5 min-h-[36px] rounded border border-light-outline-variant font-label text-label-sm text-light-primary"
+                          className="px-gutter-sm py-1.5 min-h-[36px] rounded border border-light-outline-variant font-label text-label-sm text-light-primary dark:text-red-400"
                         >
                           {isCritical ? 'Repor Stock' : 'Movimentos'}
                         </button>
@@ -492,12 +492,12 @@ export function StockFornecedoresPage({
                   <div className="flex items-start gap-gutter-sm min-w-0">
                     {mov.type === 'entrada' ? (
                       <ArrowDownLeft
-                        className="w-4 h-4 text-success shrink-0 mt-0.5"
+                        className="w-4 h-4 text-success dark:text-emerald-400 shrink-0 mt-0.5"
                         aria-hidden="true"
                       />
                     ) : (
                       <ArrowUpRight
-                        className="w-4 h-4 text-light-error shrink-0 mt-0.5"
+                        className="w-4 h-4 text-light-error dark:text-red-400 shrink-0 mt-0.5"
                         aria-hidden="true"
                       />
                     )}
@@ -512,7 +512,7 @@ export function StockFornecedoresPage({
                   </div>
                   <span
                     className={`font-mono text-mono-md font-semibold tabular-nums whitespace-nowrap ${
-                      mov.type === 'entrada' ? 'text-success' : 'text-light-error'
+                      mov.type === 'entrada' ? 'text-success dark:text-emerald-400' : 'text-light-error dark:text-red-400'
                     }`}
                   >
                     {mov.type === 'entrada' ? `+${mov.quantity}` : `-${mov.quantity}`} {mov.unit}
@@ -529,7 +529,7 @@ export function StockFornecedoresPage({
               <button
                 type="button"
                 onClick={() => setNewSupplierOpen(true)}
-                className="font-label text-label-sm text-light-primary hover:underline whitespace-nowrap"
+                className="font-label text-label-sm text-light-primary dark:text-red-400 hover:underline whitespace-nowrap"
               >
                 + Novo
               </button>

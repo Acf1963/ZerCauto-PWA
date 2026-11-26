@@ -377,13 +377,13 @@ export function FolhasObraPage({
             <h2 className="font-label text-label-lg text-light-on-surface-variant">
               Faturação Mensal
             </h2>
-            <TrendingUp className="w-[18px] h-[18px] text-success shrink-0" aria-hidden="true" />
+            <TrendingUp className="w-[18px] h-[18px] text-success dark:text-emerald-400 shrink-0" aria-hidden="true" />
           </header>
           <div className="flex flex-col gap-gutter-xs">
             <p className="font-display text-headline-md lg:text-headline-lg text-light-on-surface tabular-nums whitespace-nowrap">
               {formatCurrency(monthlyRevenue, currency)}
             </p>
-            <span className="font-body text-body-sm text-success">
+            <span className="font-body text-body-sm text-success dark:text-emerald-400">
               +{String(growthPct).replace('.', ',')}% vs mês anterior
             </span>
           </div>
@@ -413,7 +413,7 @@ export function FolhasObraPage({
             </h2>
             <AlertTriangle
               className={`w-[18px] h-[18px] shrink-0 ${
-                criticalStock.length > 0 ? 'text-light-error' : 'text-success'
+                criticalStock.length > 0 ? 'text-light-error dark:text-red-400' : 'text-success dark:text-emerald-400'
               }`}
               aria-hidden="true"
             />
@@ -421,7 +421,7 @@ export function FolhasObraPage({
           <div className="flex flex-col gap-gutter-xs">
             <p
               className={`font-display text-headline-lg tabular-nums whitespace-nowrap ${
-                criticalStock.length > 0 ? 'text-light-error' : 'text-success'
+                criticalStock.length > 0 ? 'text-light-error dark:text-red-400' : 'text-success dark:text-emerald-400'
               }`}
             >
               {criticalStock.length} {criticalStock.length === 1 ? 'peça' : 'peças'}
@@ -490,7 +490,7 @@ export function FolhasObraPage({
                   onClick={() => setActiveTab(tab.key)}
                   className={`px-gutter-md py-gutter-sm min-h-[40px] border-b-2 font-label text-label-lg whitespace-nowrap shrink-0 transition-colors duration-state-change ${
                     selected
-                      ? 'border-light-primary text-light-primary'
+                      ? 'border-light-primary dark:border-red-400 text-light-primary dark:text-red-400'
                       : 'border-transparent text-light-on-surface-variant hover:text-light-on-surface'
                   }`}
                 >
@@ -555,7 +555,7 @@ export function FolhasObraPage({
                           <td className="px-gutter-sm py-gutter-sm whitespace-nowrap">
                             <span
                               className={`font-mono text-mono-md ${
-                                isSelected ? 'text-light-primary font-semibold' : 'text-light-on-surface'
+                                isSelected ? 'text-light-primary dark:text-red-400 font-semibold' : 'text-light-on-surface'
                               }`}
                             >
                               {wo.code}
@@ -603,7 +603,7 @@ export function FolhasObraPage({
               <header className="px-gutter-md py-gutter-sm bg-light-surface-container-low border-b border-light-outline-variant flex flex-wrap items-center justify-between gap-gutter-sm">
                 <div className="flex flex-col min-w-0">
                   <div className="flex items-center gap-gutter-sm flex-wrap">
-                    <span className="font-mono text-title-md text-light-primary font-semibold">
+                    <span className="font-mono text-title-md text-light-primary dark:text-red-400 font-semibold">
                       {selectedOrder.code}
                     </span>
                     <span
@@ -666,7 +666,7 @@ export function FolhasObraPage({
                           setLaborRate(String(settings.hourlyRate));
                           setAddItemOpen(true);
                         }}
-                        className="no-print inline-flex items-center gap-1 px-2 py-1 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-primary whitespace-nowrap"
+                        className="no-print inline-flex items-center gap-1 px-2 py-1 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-primary dark:text-red-400 whitespace-nowrap"
                       >
                         <Plus className="w-3.5 h-3.5" aria-hidden="true" />
                         <span>Adicionar</span>
@@ -742,7 +742,7 @@ export function FolhasObraPage({
                       <span className="font-headline text-title-md text-light-on-surface">
                         Total c/ IVA
                       </span>
-                      <span className="font-display text-headline-md text-light-primary tabular-nums whitespace-nowrap">
+                      <span className="font-display text-headline-md text-light-primary dark:text-red-400 tabular-nums whitespace-nowrap">
                         {formatCurrency(selectedOrder.total, currency, {decimals: 2})}
                       </span>
                     </div>
@@ -784,7 +784,7 @@ export function FolhasObraPage({
           <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg overflow-hidden no-print">
             <header className="px-gutter-md py-gutter-sm bg-light-surface-container-low border-b border-light-outline-variant flex items-center justify-between gap-gutter-sm">
               <div className="flex items-center gap-gutter-sm">
-                <AlertTriangle className="w-4 h-4 text-light-error shrink-0" aria-hidden="true" />
+                <AlertTriangle className="w-4 h-4 text-light-error dark:text-red-400 shrink-0" aria-hidden="true" />
                 <h3 className="font-headline text-title-md text-light-on-surface">
                   Alertas de Stock Baixo
                 </h3>
@@ -792,7 +792,7 @@ export function FolhasObraPage({
               <button
                 type="button"
                 onClick={onNavigateToStock}
-                className="font-label text-label-sm text-light-primary hover:underline whitespace-nowrap"
+                className="font-label text-label-sm text-light-primary dark:text-red-400 hover:underline whitespace-nowrap"
               >
                 {criticalStock.length} Críticos · Ver Stock
               </button>
@@ -813,7 +813,7 @@ export function FolhasObraPage({
                       <span className="font-label text-label-lg text-light-on-surface truncate">
                         {item.name}
                       </span>
-                      <span className="font-mono text-mono-sm text-light-error tabular-nums">
+                      <span className="font-mono text-mono-sm text-light-error dark:text-red-400 tabular-nums">
                         Atual: {item.quantity} {item.unit} · Mín: {item.minQuantity} {item.unit}
                       </span>
                     </div>
@@ -823,7 +823,7 @@ export function FolhasObraPage({
                         setRestockItem(item);
                         setRestockQty(String(Math.max(item.minQuantity * 2, 5)));
                       }}
-                      className="px-gutter-sm py-1.5 min-h-[34px] rounded border border-light-outline-variant hover:border-light-primary hover:text-light-primary font-label text-label-sm text-light-on-surface whitespace-nowrap shrink-0"
+                      className="px-gutter-sm py-1.5 min-h-[34px] rounded border border-light-outline-variant hover:border-light-primary dark:hover:border-red-400 hover:text-light-primary dark:hover:text-red-400 font-label text-label-sm text-light-on-surface whitespace-nowrap shrink-0"
                     >
                       Repor
                     </button>
@@ -1104,7 +1104,7 @@ export function FolhasObraPage({
           <div className="flex flex-col gap-gutter-md">
             <p className="font-body text-body-md text-light-on-surface">
               Referência gerada para liquidação online da folha{' '}
-              <span className="font-mono font-semibold text-light-primary">
+              <span className="font-mono font-semibold text-light-primary dark:text-red-400">
                 {paymentModalOrder.code}
               </span>{' '}
               no valor de{' '}
@@ -1159,7 +1159,7 @@ export function FolhasObraPage({
               <span className="font-body text-body-sm text-light-on-surface-variant">
                 Stock atual / mínimo
               </span>
-              <span className="font-mono text-mono-md text-light-error tabular-nums">
+              <span className="font-mono text-mono-md text-light-error dark:text-red-400 tabular-nums">
                 {restockItem.quantity} / {restockItem.minQuantity} {restockItem.unit}
               </span>
             </div>

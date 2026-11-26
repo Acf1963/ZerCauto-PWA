@@ -42,7 +42,7 @@ export function MobileNav({
               onClick={() => onSelectSection(item.id)}
               aria-current={isActive ? 'page' : undefined}
               className={`relative flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors duration-state-change ${
-                isActive ? 'text-light-primary' : 'text-light-on-surface-variant'
+                isActive ? 'text-light-primary dark:text-red-400' : 'text-light-on-surface-variant'
               }`}
             >
               <div className="relative">

@@ -156,7 +156,7 @@ export function Sidebar({
             <span className="font-label text-label-sm text-on-accent/70 whitespace-nowrap">
               IndexedDB Local
             </span>
-            <span className="font-mono text-mono-sm text-success-container whitespace-nowrap">
+            <span className="font-mono text-mono-sm text-success-container dark:text-emerald-400 whitespace-nowrap">
               Ativo
             </span>
           </div>

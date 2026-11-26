@@ -286,17 +286,17 @@ export function PagamentosRelatoriosPage({
           <span className="font-label text-label-lg text-light-on-surface-variant">
             Total Recebido
           </span>
-          <p className="font-display text-headline-md lg:text-headline-lg text-success tabular-nums">
+          <p className="font-display text-headline-md lg:text-headline-lg text-success dark:text-emerald-400 tabular-nums">
             {formatCurrency(financials.totalReceived, currency)}
           </p>
-          <span className="font-body text-body-sm text-success tabular-nums">
+          <span className="font-body text-body-sm text-success dark:text-emerald-400 tabular-nums">
             {financials.collectionRate}% cobrado
           </span>
         </article>
 
         <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-xs">
           <span className="font-label text-label-lg text-light-on-surface-variant">Em Dívida</span>
-          <p className="font-display text-headline-md lg:text-headline-lg text-light-error tabular-nums">
+          <p className="font-display text-headline-md lg:text-headline-lg text-light-error dark:text-red-400 tabular-nums">
             {formatCurrency(financials.totalDebt, currency)}
           </p>
           <span className="font-body text-body-sm text-light-on-surface-variant tabular-nums">
@@ -365,7 +365,7 @@ export function PagamentosRelatoriosPage({
                     >
                       <td className="px-gutter-sm py-gutter-sm">
                         <div className="flex flex-col">
-                          <span className="font-mono text-mono-md text-light-primary font-semibold">
+                          <span className="font-mono text-mono-md text-light-primary dark:text-red-400 font-semibold">
                             {wo.code}
                           </span>
                           <span className="font-label text-label-sm text-light-on-surface">
@@ -471,7 +471,7 @@ export function PagamentosRelatoriosPage({
                         onNotify(generatedLink);
                       }
                     }}
-                    className="inline-flex items-center gap-1 font-label text-label-sm text-light-primary hover:underline"
+                    className="inline-flex items-center gap-1 font-label text-label-sm text-light-primary dark:text-red-400 hover:underline"
                   >
                     <Copy className="w-3 h-3" aria-hidden="true" />
                     <span>Copiar</span>
@@ -517,7 +517,7 @@ export function PagamentosRelatoriosPage({
                 >
                   <div className="flex flex-col min-w-0">
                     <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" aria-hidden="true" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-success dark:text-emerald-400 shrink-0" aria-hidden="true" />
                       <span className="font-mono text-mono-md text-light-on-surface">
                         {rec.workOrderCode}
                       </span>
@@ -526,7 +526,7 @@ export function PagamentosRelatoriosPage({
                       {rec.clientName} · {rec.paidAt} · {rec.reference}
                     </span>
                   </div>
-                  <span className="font-mono text-mono-md font-semibold text-success tabular-nums whitespace-nowrap">
+                  <span className="font-mono text-mono-md font-semibold text-success dark:text-emerald-400 tabular-nums whitespace-nowrap">
                     {formatCurrency(rec.amount, currency)}
                   </span>
                 </div>

@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* Colors */
@@ -129,6 +130,61 @@
 }
 
 @layer base {
+  html {
+    color-scheme: light;
+  }
+
+  html.dark {
+    color-scheme: dark;
+
+    --color-accent: #070B13;
+    --color-on-accent: #F1F5F9;
+    --color-success: #15803D;
+    --color-on-success: #FFFFFF;
+    --color-success-container: #052E16;
+    --color-on-success-container: #86EFAC;
+    --color-warning: #D97706;
+    --color-on-warning: #FFFFFF;
+    --color-warning-container: #451A03;
+    --color-on-warning-container: #FDE68A;
+
+    --color-light-primary: #B91C1C;
+    --color-light-on-primary: #FFFFFF;
+    --color-light-primary-container: #991B1B;
+    --color-light-on-primary-container: #FFFFFF;
+    --color-light-secondary: #94A3B8;
+    --color-light-on-secondary: #0F172A;
+    --color-light-secondary-container: #1E293B;
+    --color-light-on-secondary-container: #CBD5E1;
+    --color-light-tertiary: #38BDF8;
+    --color-light-on-tertiary: #0F172A;
+    --color-light-tertiary-container: #0C4A6E;
+    --color-light-on-tertiary-container: #E0F2FE;
+    --color-light-error: #DC2626;
+    --color-light-on-error: #FFFFFF;
+    --color-light-error-container: #450A0A;
+    --color-light-on-error-container: #FCA5A5;
+
+    --color-light-background: #0B1120;
+    --color-light-on-background: #F1F5F9;
+    --color-light-surface: #0B1120;
+    --color-light-surface-dim: #070B13;
+    --color-light-surface-bright: #FFFFFF;
+    --color-light-surface-container-lowest: #111827;
+    --color-light-surface-container-low: #162033;
+    --color-light-surface-container: #1E293B;
+    --color-light-surface-container-high: #283548;
+    --color-light-surface-container-highest: #334155;
+    --color-light-on-surface: #F1F5F9;
+    --color-light-surface-variant: #1E293B;
+    --color-light-on-surface-variant: #94A3B8;
+    --color-light-outline: #64748B;
+    --color-light-outline-variant: #283548;
+    --color-light-inverse-surface: #F1F5F9;
+    --color-light-inverse-on-surface: #0F172A;
+    --color-light-inverse-primary: #F87171;
+  }
+
   html,
   body {
     background-color: var(--color-light-background);
@@ -152,6 +208,23 @@
   nav.no-print,
   .no-print {
     display: none !important;
+  }
+
+  html,
+  html.dark {
+    color-scheme: light;
+    --color-light-background: #ffffff;
+    --color-light-on-background: #0f172a;
+    --color-light-surface-container-lowest: #ffffff;
+    --color-light-surface-container-low: #f8fafc;
+    --color-light-surface-container: #e2e8f0;
+    --color-light-on-surface: #0f172a;
+    --color-light-on-surface-variant: #334155;
+    --color-light-outline-variant: #cbd5e1;
+    --color-light-primary: #760009;
+    --color-success: #15803d;
+    --color-success-container: #dcfce7;
+    --color-on-success-container: #14532d;
   }
 
   body {

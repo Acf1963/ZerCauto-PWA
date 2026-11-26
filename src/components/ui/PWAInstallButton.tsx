@@ -47,7 +47,12 @@ export function PWAInstallButton({variant = 'compact', onNotify}: PWAInstallButt
         }
         title={canInstallNative ? 'Instalar ZercAuto Gest como aplicação' : 'Instruções de instalação PWA'}
       >
-        <Download className="w-4 h-4 text-light-primary shrink-0" aria-hidden="true" />
+        <Download
+          className={`w-4 h-4 shrink-0 ${
+            variant === 'full' ? 'text-light-on-primary' : 'text-light-primary dark:text-red-400'
+          }`}
+          aria-hidden="true"
+        />
         <span className={variant === 'compact' ? 'hidden xl:inline' : ''}>Instalar App</span>
       </button>
 
@@ -65,20 +70,20 @@ export function PWAInstallButton({variant = 'compact', onNotify}: PWAInstallButt
           {isIOS ? (
             <ol className="flex flex-col gap-gutter-sm font-body text-body-md text-light-on-surface">
               <li className="flex items-start gap-gutter-sm">
-                <span className="font-mono text-mono-md text-light-primary font-semibold">1.</span>
+                <span className="font-mono text-mono-md text-light-primary dark:text-red-400 font-semibold">1.</span>
                 <span>
                   Toque no ícone <Share className="w-4 h-4 inline mx-1" aria-hidden="true" />{' '}
                   <strong>Partilhar</strong> na barra inferior do Safari.
                 </span>
               </li>
               <li className="flex items-start gap-gutter-sm">
-                <span className="font-mono text-mono-md text-light-primary font-semibold">2.</span>
+                <span className="font-mono text-mono-md text-light-primary dark:text-red-400 font-semibold">2.</span>
                 <span>
                   Deslize e selecione <strong>&ldquo;Adicionar ao ecrã principal&rdquo;</strong>.
                 </span>
               </li>
               <li className="flex items-start gap-gutter-sm">
-                <span className="font-mono text-mono-md text-light-primary font-semibold">3.</span>
+                <span className="font-mono text-mono-md text-light-primary dark:text-red-400 font-semibold">3.</span>
                 <span>
                   Confirme tocando em <strong>Adicionar</strong> para executar em modo ecrã inteiro offline.
                 </span>

@@ -1,7 +1,8 @@
-import {Database, Download, RotateCcw, Save, Upload} from 'lucide-react';
+import {Database, Download, Monitor, Moon, RotateCcw, Save, Sun, Upload} from 'lucide-react';
 import {useRef, useState} from 'react';
 import {db, saveWorkshopSettings} from '../db/dexie';
 import {resetDatabaseToSeed} from '../db/seed';
+import {type ThemePreference, useTheme} from '../hooks/useTheme';
 import {isSupabaseConfigured} from '../lib/supabase';
 import type {CurrencyCode, WorkshopSettings} from '../types/database';
 import {PWAInstallButton} from '../components/ui/PWAInstallButton';
@@ -29,6 +30,7 @@ export function DefinicoesPage({
   const [hourlyRate, setHourlyRate] = useState(String(settings.hourlyRate));
   const [autoSync, setAutoSync] = useState(settings.autoSync);
   const [confirmReset, setConfirmReset] = useState(false);
+  const {preference, setPreference} = useTheme();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -262,13 +264,73 @@ export function DefinicoesPage({
         </div>
       </form>
 
-      {/* Right: Sync, PWA Install, Backup & Restore */}
+      {/* Right: Appearance, Sync, PWA Install, Backup & Restore */}
       <div className="xl:col-span-5 flex flex-col gap-gutter-md">
+        {/* Theme / Appearance Panel */}
+        <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-sm">
+          <header className="flex items-center justify-between gap-gutter-sm pb-gutter-sm border-b border-light-outline-variant">
+            <div className="flex items-center gap-gutter-sm">
+              {preference === 'dark' ? (
+                <Moon className="w-4 h-4 text-amber-400 shrink-0" aria-hidden="true" />
+              ) : (
+                <Sun className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0" aria-hidden="true" />
+              )}
+              <h3 className="font-headline text-title-md text-light-on-surface">
+                Aparência da Aplicação
+              </h3>
+            </div>
+            <span className="font-mono text-mono-sm text-light-on-surface-variant">
+              {preference === 'system' ? 'Automático' : preference === 'dark' ? 'Escuro' : 'Claro'}
+            </span>
+          </header>
+
+          <p className="font-body text-body-sm text-light-on-surface-variant">
+            Escolha o tema visual para o balcão ou acompanhe a definição do dispositivo.
+          </p>
+
+          <div
+            role="radiogroup"
+            aria-label="Selecionar tema da aplicação"
+            className="grid grid-cols-3 gap-gutter-xs p-1 rounded border border-light-outline-variant bg-light-surface-container-low"
+          >
+            {(
+              [
+                {id: 'light', label: 'Claro', icon: Sun},
+                {id: 'dark', label: 'Escuro', icon: Moon},
+                {id: 'system', label: 'Sistema', icon: Monitor},
+              ] as Array<{id: ThemePreference; label: string; icon: typeof Sun}>
+            ).map((opt) => {
+              const Icon = opt.icon;
+              const selected = preference === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => {
+                    setPreference(opt.id);
+                    onNotify(`Tema alterado para ${opt.label}.`);
+                  }}
+                  className={`inline-flex items-center justify-center gap-1.5 min-h-[38px] px-gutter-sm py-1.5 rounded font-label text-label-lg transition-colors duration-state-change ${
+                    selected
+                      ? 'bg-light-primary text-light-on-primary'
+                      : 'text-light-on-surface-variant hover:bg-light-surface-container hover:text-light-on-surface'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </article>
+
         {/* Sync & Cloud Panel */}
         <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-sm">
           <header className="flex items-center justify-between gap-gutter-sm pb-gutter-sm border-b border-light-outline-variant">
             <div className="flex items-center gap-gutter-sm">
-              <Database className="w-4 h-4 text-light-primary shrink-0" aria-hidden="true" />
+              <Database className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0" aria-hidden="true" />
               <h3 className="font-headline text-title-md text-light-on-surface">
                 Sincronização &amp; Base de Dados
               </h3>
@@ -367,7 +429,7 @@ export function DefinicoesPage({
               <button
                 type="button"
                 onClick={() => setConfirmReset(true)}
-                className="inline-flex items-center gap-1 px-gutter-sm py-1.5 rounded border border-light-error/30 text-light-error hover:bg-light-error-container font-label text-label-sm"
+                className="inline-flex items-center gap-1 px-gutter-sm py-1.5 rounded border border-light-error/30 text-light-error dark:text-red-400 hover:bg-light-error-container font-label text-label-sm"
               >
                 <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                 <span>Repor Dados</span>
