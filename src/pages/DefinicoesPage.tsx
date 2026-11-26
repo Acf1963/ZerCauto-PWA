@@ -1,9 +1,9 @@
-import {Database, Download, Monitor, Moon, RotateCcw, Save, Sun, Upload} from 'lucide-react';
-import {useRef, useState} from 'react';
+import {Database, Download, LogIn, LogOut, Monitor, Moon, RotateCcw, Save, Sun, Upload} from 'lucide-react';
+import {useEffect, useRef, useState} from 'react';
 import {db, saveWorkshopSettings} from '../db/dexie';
 import {resetDatabaseToSeed} from '../db/seed';
 import {type ThemePreference, useTheme} from '../hooks/useTheme';
-import {isSupabaseConfigured} from '../lib/supabase';
+import {isSupabaseConfigured, supabase} from '../lib/supabase';
 import type {CurrencyCode, WorkshopSettings} from '../types/database';
 import {PWAInstallButton} from '../components/ui/PWAInstallButton';
 
@@ -30,9 +30,58 @@ export function DefinicoesPage({
   const [hourlyRate, setHourlyRate] = useState(String(settings.hourlyRate));
   const [autoSync, setAutoSync] = useState(settings.autoSync);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [cloudUserEmail, setCloudUserEmail] = useState<string | null>(null);
+  const [cloudEmail, setCloudEmail] = useState('');
+  const [cloudPassword, setCloudPassword] = useState('');
+  const [cloudAuthBusy, setCloudAuthBusy] = useState(false);
   const {preference, setPreference} = useTheme();
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured || !supabase) return;
+    let active = true;
+    supabase.auth.getUser().then(({data}) => {
+      if (active) {
+        setCloudUserEmail(data.user?.email ?? null);
+      }
+    });
+    const {data: sub} = supabase.auth.onAuthStateChange((_event, session) => {
+      setCloudUserEmail(session?.user?.email ?? null);
+    });
+    return () => {
+      active = false;
+      sub.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleCloudSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!supabase || !cloudEmail.trim() || !cloudPassword) return;
+    setCloudAuthBusy(true);
+    try {
+      const {data, error} = await supabase.auth.signInWithPassword({
+        email: cloudEmail.trim(),
+        password: cloudPassword,
+      });
+      if (error) {
+        onNotify(`Erro Supabase Auth: ${error.message}`);
+        return;
+      }
+      setCloudPassword('');
+      setCloudUserEmail(data.user?.email ?? cloudEmail.trim());
+      onNotify(`Sessão Supabase Cloud iniciada (${data.user?.email ?? cloudEmail.trim()}).`);
+    } finally {
+      setCloudAuthBusy(false);
+    }
+  };
+
+  const handleCloudSignOut = async () => {
+    if (!supabase) return;
+    await supabase.auth.signOut();
+    setCloudUserEmail(null);
+    onNotify('Sessão Supabase Cloud terminada.');
+  };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -348,11 +397,65 @@ export function DefinicoesPage({
               Cloud Remota (Supabase):{' '}
               <strong className="text-light-on-surface">
                 {isSupabaseConfigured
-                  ? 'Ativo via VITE_SUPABASE_URL'
+                  ? cloudUserEmail
+                    ? `Autenticado (${cloudUserEmail})`
+                    : 'Configurado · Aguarda sessão Auth'
                   : 'Modo Local Offline-First (sem credenciais .env)'}
               </strong>
             </p>
           </div>
+
+          {isSupabaseConfigured && (
+            <div className="p-gutter-sm bg-light-surface-container-low border border-light-outline-variant rounded flex flex-col gap-gutter-sm">
+              {cloudUserEmail ? (
+                <div className="flex items-center justify-between gap-gutter-sm flex-wrap">
+                  <span className="font-mono text-mono-sm text-success dark:text-emerald-400">
+                    Sessão ativa: {cloudUserEmail}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleCloudSignOut}
+                    className="inline-flex items-center gap-1 px-gutter-sm py-1 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+                  >
+                    <LogOut className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>Sair da Cloud</span>
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleCloudSignIn} className="flex flex-col gap-gutter-xs">
+                  <span className="font-label text-label-sm text-light-on-surface">
+                    Iniciar Sessão Supabase Auth (necessário para RLS)
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-gutter-xs">
+                    <input
+                      type="email"
+                      required
+                      value={cloudEmail}
+                      onChange={(e) => setCloudEmail(e.target.value)}
+                      placeholder="Email Supabase Auth"
+                      className="w-full min-h-[38px] px-gutter-sm bg-light-surface-container-lowest border border-light-outline-variant rounded font-mono text-mono-sm text-light-on-surface"
+                    />
+                    <input
+                      type="password"
+                      required
+                      value={cloudPassword}
+                      onChange={(e) => setCloudPassword(e.target.value)}
+                      placeholder="Palavra-passe"
+                      className="w-full min-h-[38px] px-gutter-sm bg-light-surface-container-lowest border border-light-outline-variant rounded font-mono text-mono-sm text-light-on-surface"
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={cloudAuthBusy}
+                    className="self-start inline-flex items-center gap-1.5 px-gutter-sm py-1.5 min-h-[36px] rounded bg-light-primary text-light-on-primary hover:bg-light-primary-container disabled:opacity-60 font-label text-label-sm"
+                  >
+                    <LogIn className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>{cloudAuthBusy ? 'A autenticar...' : 'Ligar Sessão Cloud'}</span>
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
 
           <div className="flex flex-wrap items-center gap-gutter-sm pt-gutter-xs">
             <button

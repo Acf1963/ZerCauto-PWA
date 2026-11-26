@@ -1026,6 +1026,20 @@ export async function syncNow(): Promise<SyncResult> {
       };
     }
 
+    const {data: sessionData} = await supabase.auth.getSession();
+    if (!sessionData.session) {
+      return {
+        syncedCount: 0,
+        pushedCount: 0,
+        pulledCount: 0,
+        remainingCount: queueCount,
+        mode: 'cloud',
+        healthOk: false,
+        timestamp,
+        error: 'Ligue a sua sessão Supabase Auth em Definições para sincronizar com a cloud.',
+      };
+    }
+
     const healthOk = await checkSupabaseHealth();
     if (!healthOk) {
       return {
@@ -1036,7 +1050,8 @@ export async function syncNow(): Promise<SyncResult> {
         mode: 'cloud',
         healthOk: false,
         timestamp,
-        error: 'Servidor Supabase indisponível ou sem sessão autenticada. Dados preservados localmente.',
+        error:
+          'Tabelas Supabase ainda não instaladas, sem permissão RLS no perfil ou servidor inacessível.',
       };
     }
 
