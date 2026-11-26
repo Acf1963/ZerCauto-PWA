@@ -3,8 +3,9 @@ import {
   Copy,
   CreditCard,
   Download,
+  FileDown,
+  FileSpreadsheet,
   Link2,
-  Printer,
 } from 'lucide-react';
 import {useMemo, useState} from 'react';
 import {newUuid, savePaymentRecord, saveWorkOrder} from '../db/dexie';
@@ -13,6 +14,7 @@ import type {
   PaymentMethod,
   PaymentRecord,
   WorkOrder,
+  WorkshopSettings,
 } from '../types/database';
 import {
   downloadCSV,
@@ -26,6 +28,7 @@ import {Modal} from '../components/ui/Modal';
 interface PagamentosRelatoriosPageProps {
   workOrders: WorkOrder[];
   paymentRecords: PaymentRecord[];
+  settings: WorkshopSettings;
   currency: CurrencyCode;
   mode: 'payments' | 'reports';
   onNotify: (msg: string) => void;
@@ -41,6 +44,7 @@ const PAYMENT_METHODS: PaymentMethod[] = [
 export function PagamentosRelatoriosPage({
   workOrders,
   paymentRecords,
+  settings,
   currency,
   mode,
   onNotify,
@@ -58,6 +62,7 @@ export function PagamentosRelatoriosPage({
     'Pagamento Online (Link / Ref.)'
   );
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
 
   // Register Payment Modal state
   const [payOrderId, setPayOrderId] = useState('');
@@ -70,6 +75,14 @@ export function PagamentosRelatoriosPage({
         ? workOrders
         : workOrders.filter((w) => w.periodKey === selectedPeriod),
     [workOrders, selectedPeriod]
+  );
+
+  const filteredPeriodPayments = useMemo(
+    () =>
+      selectedPeriod === 'all'
+        ? paymentRecords
+        : paymentRecords.filter((p) => p.periodKey === selectedPeriod),
+    [paymentRecords, selectedPeriod]
   );
 
   // Dynamic Financial KPIs from IndexedDB records
@@ -162,6 +175,44 @@ export function PagamentosRelatoriosPage({
     onNotify(`Relatório CSV (${formatPeriodLabel(selectedPeriod)}) exportado.`);
   };
 
+  const handleExportXLSX = async () => {
+    const label =
+      selectedPeriod === 'all' ? 'Todos os Períodos' : formatPeriodLabel(selectedPeriod);
+    const {exportFinancialReportXlsx} = await import('../utils/exporters');
+    exportFinancialReportXlsx(
+      selectedPeriod,
+      label,
+      periodOrders,
+      filteredPeriodPayments,
+      currency
+    );
+    onNotify(`Relatório Excel (.xlsx) (${label}) exportado.`);
+  };
+
+  const handleExportPDF = async () => {
+    const label =
+      selectedPeriod === 'all' ? 'Todos os Períodos' : formatPeriodLabel(selectedPeriod);
+    setExportingPdf(true);
+    try {
+      const {exportFinancialReportPdf} = await import('../utils/exporters');
+      await exportFinancialReportPdf(
+        selectedPeriod,
+        label,
+        periodOrders,
+        filteredPeriodPayments,
+        settings,
+        currency
+      );
+      onNotify(`Relatório PDF (${label}) gerado com sucesso.`);
+    } catch (err) {
+      onNotify(
+        `Erro ao gerar PDF: ${err instanceof Error ? err.message : 'tente novamente.'}`
+      );
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const handleGenerateAndCopyLink = async () => {
     if (!onlineTargetOrder) return;
     const link = `https://pay.zercauto.ao/${onlineTargetOrder.code.toLowerCase()}`;
@@ -246,15 +297,24 @@ export function PagamentosRelatoriosPage({
             className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap"
           >
             <Download className="w-4 h-4 shrink-0" aria-hidden="true" />
-            <span>Exportar CSV</span>
+            <span>CSV</span>
           </button>
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={handleExportXLSX}
             className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap"
           >
-            <Printer className="w-4 h-4 shrink-0" aria-hidden="true" />
-            <span>Imprimir / PDF</span>
+            <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>Exportar XLSX</span>
+          </button>
+          <button
+            type="button"
+            disabled={exportingPdf}
+            onClick={handleExportPDF}
+            className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container disabled:opacity-60 font-label text-label-lg text-light-on-surface whitespace-nowrap"
+          >
+            <FileDown className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>{exportingPdf ? 'A gerar PDF...' : 'Exportar PDF'}</span>
           </button>
           <button
             type="button"

@@ -3,9 +3,10 @@ import {
   CheckCircle2,
   ClipboardPlus,
   Copy,
+  FileDown,
+  FileSpreadsheet,
   Link2,
   Plus,
-  Printer,
   Search,
   TrendingUp,
   Wallet,
@@ -92,6 +93,32 @@ export function FolhasObraPage({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [selectedOrderId, setSelectedOrderId] = useState<string>(workOrders[0]?.id ?? '');
+  const [exportingPdf, setExportingPdf] = useState(false);
+
+  const handleExportOrderPdf = async (order: WorkOrder) => {
+    setExportingPdf(true);
+    try {
+      const {exportWorkOrderPdf} = await import('../utils/exporters');
+      await exportWorkOrderPdf(order, settings, currency);
+      onNotify(`PDF ${order.code}.pdf exportado com sucesso.`);
+    } catch (err) {
+      onNotify(
+        `Erro ao gerar PDF: ${err instanceof Error ? err.message : 'tente novamente.'}`
+      );
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleExportOrdersListXlsx = async () => {
+    if (filteredOrders.length === 0) {
+      onNotify('Sem folhas de obra para exportar neste filtro.');
+      return;
+    }
+    const {exportWorkOrdersXlsx} = await import('../utils/exporters');
+    exportWorkOrdersXlsx(filteredOrders, currency);
+    onNotify(`${filteredOrders.length} folhas de obra exportadas para Excel (.xlsx).`);
+  };
 
   // Modals
   const [newOrderOpen, setNewOrderOpen] = useState(false);
@@ -452,14 +479,25 @@ export function FolhasObraPage({
               />
             </div>
 
-            <button
-              type="button"
-              onClick={handleOpenNewOrder}
-              className="inline-flex items-center justify-center gap-gutter-sm px-gutter-md py-gutter-sm min-h-[42px] bg-light-primary text-light-on-primary rounded border border-light-primary hover:bg-light-primary-container transition-colors duration-state-change font-label text-label-lg whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
-              <span>Nova Folha de Obra</span>
-            </button>
+            <div className="flex flex-wrap items-center gap-gutter-sm shrink-0">
+              <button
+                type="button"
+                onClick={handleExportOrdersListXlsx}
+                className="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[42px] bg-light-surface-container-lowest text-light-on-surface rounded border border-light-outline-variant hover:bg-light-surface-container transition-colors duration-state-change font-label text-label-lg whitespace-nowrap shrink-0"
+              >
+                <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Exportar XLSX</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleOpenNewOrder}
+                className="inline-flex items-center justify-center gap-gutter-sm px-gutter-md py-gutter-sm min-h-[42px] bg-light-primary text-light-on-primary rounded border border-light-primary hover:bg-light-primary-container transition-colors duration-state-change font-label text-label-lg whitespace-nowrap shrink-0"
+              >
+                <Plus className="w-4 h-4 shrink-0" aria-hidden="true" />
+                <span>Nova Folha de Obra</span>
+              </button>
+            </div>
           </div>
 
           {/* Status Filter Tabs */}
@@ -751,14 +789,34 @@ export function FolhasObraPage({
 
                 {/* Action Footer */}
                 <div className="pt-gutter-sm border-t border-light-outline-variant flex flex-wrap items-center justify-between gap-gutter-sm no-print">
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap"
-                  >
-                    <Printer className="w-4 h-4 shrink-0" aria-hidden="true" />
-                    <span>Imprimir / PDF</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-gutter-sm">
+                    <button
+                      type="button"
+                      disabled={exportingPdf}
+                      onClick={() => handleExportOrderPdf(selectedOrder)}
+                      className="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container disabled:opacity-60 font-label text-label-lg text-light-on-surface whitespace-nowrap"
+                    >
+                      <FileDown className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      <span>{exportingPdf ? 'A gerar PDF...' : 'Exportar PDF'}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const {exportWorkOrdersXlsx} = await import('../utils/exporters');
+                        exportWorkOrdersXlsx(
+                          [selectedOrder],
+                          currency,
+                          `${selectedOrder.code}.xlsx`
+                        );
+                        onNotify(`Folha ${selectedOrder.code}.xlsx exportada.`);
+                      }}
+                      className="inline-flex items-center justify-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[40px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap"
+                    >
+                      <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+                      <span>XLSX</span>
+                    </button>
+                  </div>
 
                   {selectedOrder.paymentStatus === 'Liquidado' ? (
                     <span className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm rounded bg-success-container text-on-success-container font-label text-label-lg whitespace-nowrap">

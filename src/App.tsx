@@ -362,6 +362,7 @@ export default function App() {
               stockItems={stockItems}
               movements={movements}
               suppliers={suppliers}
+              settings={settings}
               currency={settings.currency}
               onNotify={notify}
             />
@@ -371,6 +372,7 @@ export default function App() {
             <PagamentosRelatoriosPage
               workOrders={workOrders}
               paymentRecords={paymentRecords}
+              settings={settings}
               currency={settings.currency}
               mode={activeSection === 'relatorios' ? 'reports' : 'payments'}
               onNotify={notify}

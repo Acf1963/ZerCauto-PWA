@@ -1,4 +1,4 @@
-import {Car, Edit3, Plus, Search, UserPlus} from 'lucide-react';
+import {Car, Edit3, FileSpreadsheet, Plus, Search, UserPlus} from 'lucide-react';
 import {useMemo, useState} from 'react';
 import {newUuid, saveClient, saveVehicle} from '../db/dexie';
 import type {Client, CurrencyCode, Vehicle, WorkOrder} from '../types/database';
@@ -202,6 +202,19 @@ export function ClientesViaturasPage({
               className="w-full min-h-[42px] pl-9 pr-3 py-gutter-sm bg-light-surface-container-lowest border border-light-outline-variant rounded font-body text-body-md text-light-on-surface placeholder:text-light-outline focus:outline-none focus:border-light-primary"
             />
           </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const {exportClientsVehiclesXlsx} = await import('../utils/exporters');
+              exportClientsVehiclesXlsx(clients, vehicles);
+              onNotify('Base de clientes e viaturas exportada para Excel (.xlsx).');
+            }}
+            className="inline-flex items-center justify-center gap-gutter-xs px-gutter-sm py-gutter-sm min-h-[42px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap shrink-0"
+          >
+            <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>XLSX</span>
+          </button>
 
           <button
             type="button"

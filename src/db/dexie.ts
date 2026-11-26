@@ -204,6 +204,98 @@ export async function recordStockMovement(
   });
 }
 
+export interface InventoryAdjustmentInput {
+  item: StockItem;
+  countedQuantity: number;
+  note?: string;
+}
+
+export interface InventoryAdjustmentAppliedItem {
+  stockItemId: string;
+  sku: string;
+  name: string;
+  unit: string;
+  previousQuantity: number;
+  countedQuantity: number;
+  difference: number;
+  costPrice: number;
+  costImpact: number;
+  movementType: 'entrada' | 'saida';
+  note?: string;
+}
+
+export async function applyInventoryAdjustments(
+  entries: InventoryAdjustmentInput[],
+  inventoryRef: string
+): Promise<InventoryAdjustmentAppliedItem[]> {
+  const now = new Date().toISOString();
+  const applied: InventoryAdjustmentAppliedItem[] = [];
+  const cleanRef = inventoryRef.trim() || `INV-${now.slice(0, 10)}`;
+
+  await db.transaction('rw', db.stockItems, db.stockMovements, db.syncQueue, async () => {
+    for (const entry of entries) {
+      const latestItem = (await db.stockItems.get(entry.item.id)) ?? entry.item;
+      const nextQty = Math.max(0, Number(entry.countedQuantity.toFixed(2)));
+      const prevQty = Number(latestItem.quantity.toFixed(2));
+      const diff = Number((nextQty - prevQty).toFixed(2));
+
+      if (Math.abs(diff) < 0.001) {
+        continue;
+      }
+
+      const movementType: 'entrada' | 'saida' = diff > 0 ? 'entrada' : 'saida';
+      const absDiff = Math.abs(diff);
+
+      const updatedItem: StockItem = {
+        ...latestItem,
+        quantity: nextQty,
+        updatedAt: now,
+        deletedAt: latestItem.deletedAt ?? null,
+        syncVersion: (latestItem.syncVersion ?? 0) + 1,
+        _syncStatus: 'pending',
+      };
+
+      const noteSuffix = entry.note?.trim() ? ` · ${entry.note.trim()}` : '';
+      const movement: StockMovement = {
+        id: newUuid(),
+        stockItemId: latestItem.id,
+        sku: latestItem.sku,
+        itemName: latestItem.name,
+        type: movementType,
+        quantity: absDiff,
+        unit: latestItem.unit,
+        reference: `${cleanRef} · Acerto (${prevQty}->${nextQty})${noteSuffix}`,
+        createdAt: now,
+        updatedAt: now,
+        deletedAt: null,
+        syncVersion: 1,
+        _syncStatus: 'pending',
+      };
+
+      await db.stockItems.put(updatedItem);
+      await db.stockMovements.put(movement);
+      await enqueueSync('stockItems', updatedItem.id, 'upsert', updatedItem);
+      await enqueueSync('stockMovements', movement.id, 'upsert', movement);
+
+      applied.push({
+        stockItemId: latestItem.id,
+        sku: latestItem.sku,
+        name: latestItem.name,
+        unit: latestItem.unit,
+        previousQuantity: prevQty,
+        countedQuantity: nextQty,
+        difference: diff,
+        costPrice: latestItem.costPrice,
+        costImpact: Number((diff * latestItem.costPrice).toFixed(2)),
+        movementType,
+        note: entry.note?.trim() || undefined,
+      });
+    }
+  });
+
+  return applied;
+}
+
 export async function saveSupplier(supplier: Supplier): Promise<void> {
   const updated: Supplier = {
     ...supplier,
