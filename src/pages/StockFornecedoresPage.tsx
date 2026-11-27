@@ -87,6 +87,7 @@ export function StockFornecedoresPage({
   const [newPartOpen, setNewPartOpen] = useState(false);
   const [movementOpen, setMovementOpen] = useState(false);
   const [newSupplierOpen, setNewSupplierOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   // New Part Form
   const [pSku, setPSku] = useState('');
@@ -347,23 +348,44 @@ export function StockFornecedoresPage({
     );
   };
 
+  const openEditSupplierModal = (sup: Supplier) => {
+    setEditingSupplier(sup);
+    setSName(sup.name);
+    setSPhone(sup.phone);
+    setSEta(sup.deliveryEta);
+    setSSpecialty(sup.specialty);
+    setSEmail(sup.email);
+    setNewSupplierOpen(true);
+  };
+
   const handleSaveSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!sName.trim()) return;
-    const supplier: Supplier = {
-      id: newUuid(),
-      name: sName.trim(),
-      phone: sPhone.trim(),
-      deliveryEta: sEta.trim() || '48h',
-      specialty: sSpecialty.trim() || 'Peças Gerais',
-      email: sEmail.trim(),
-      updatedAt: new Date().toISOString(),
-    };
+    const supplier: Supplier = editingSupplier
+      ? {
+          ...editingSupplier,
+          name: sName.trim(),
+          phone: sPhone.trim(),
+          deliveryEta: sEta.trim() || '48h',
+          specialty: sSpecialty.trim() || 'Peças Gerais',
+          email: sEmail.trim(),
+          updatedAt: new Date().toISOString(),
+        }
+      : {
+          id: newUuid(),
+          name: sName.trim(),
+          phone: sPhone.trim(),
+          deliveryEta: sEta.trim() || '48h',
+          specialty: sSpecialty.trim() || 'Peças Gerais',
+          email: sEmail.trim(),
+          updatedAt: new Date().toISOString(),
+        };
     await saveSupplier(supplier);
     setNewSupplierOpen(false);
+    setEditingSupplier(null);
     setSName('');
     setSEmail('');
-    onNotify(`Fornecedor ${supplier.name} registado.`);
+    onNotify(`Fornecedor ${supplier.name} ${editingSupplier ? 'atualizado' : 'registado'}.`);
   };
 
   return (
@@ -1153,9 +1175,18 @@ export function StockFornecedoresPage({
                       Entrega: {sup.deliveryEta} · {sup.phone}
                     </span>
                   </div>
-                  <span className="font-label text-label-sm text-light-on-surface-variant whitespace-nowrap shrink-0">
-                    {sup.specialty}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-label text-label-sm text-light-on-surface-variant hidden sm:inline">
+                      {sup.specialty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => openEditSupplierModal(sup)}
+                      className="px-2 py-0.5 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+                    >
+                      Editar
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

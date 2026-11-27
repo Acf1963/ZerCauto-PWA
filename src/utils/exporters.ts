@@ -1348,3 +1348,41 @@ export function exportInventoryAdjustmentsReportXlsx(
   ]);
 }
 
+export async function exportCustomTablePdf(
+  title: string,
+  subtitle: string,
+  headers: string[],
+  rows: Array<Array<string | number>>,
+  settings: WorkshopSettings,
+  filename: string
+): Promise<void> {
+  const doc = new jsPDF() as AutoTableDoc;
+  const startY = await applyPdfWorkshopHeader(doc, settings, title, subtitle);
+
+  autoTable(doc, {
+    startY: startY + 4,
+    head: [headers],
+    body: rows.length > 0 ? rows : [['-', 'Sem registos para exportar', '-']],
+    theme: 'grid',
+    styles: {
+      font: 'helvetica',
+      fontSize: 8.5,
+      cellPadding: 2.5,
+      textColor: [15, 23, 42],
+      lineColor: [203, 213, 225],
+      lineWidth: 0.2,
+    },
+    headStyles: {
+      fillColor: [15, 23, 42],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {fillColor: [248, 250, 252]},
+    margin: {left: 14, right: 14},
+  });
+
+  applyPdfPageFooters(doc, settings.invoiceFooter);
+  doc.save(filename.endsWith('.pdf') ? filename : `${filename}.pdf`);
+}
+
+

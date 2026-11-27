@@ -1,7 +1,8 @@
-import {Car, Edit3, FileSpreadsheet, Plus, Search, UserPlus} from 'lucide-react';
+import {Car, Edit3, FileSpreadsheet, FileText, Plus, Search, UserPlus} from 'lucide-react';
 import {useMemo, useState} from 'react';
 import {newUuid, saveClient, saveVehicle} from '../db/dexie';
-import type {Client, CurrencyCode, Vehicle, WorkOrder} from '../types/database';
+import type {Client, CurrencyCode, Vehicle, WorkOrder, WorkshopSettings} from '../types/database';
+import {DEFAULT_SETTINGS} from '../db/seed';
 import {
   formatCurrency,
   formatNumberPT,
@@ -15,6 +16,7 @@ interface ClientesViaturasPageProps {
   vehicles: Vehicle[];
   workOrders: WorkOrder[];
   currency: CurrencyCode;
+  settings?: WorkshopSettings;
   onNotify: (msg: string) => void;
 }
 
@@ -23,6 +25,7 @@ export function ClientesViaturasPage({
   vehicles,
   workOrders,
   currency,
+  settings = DEFAULT_SETTINGS,
   onNotify,
 }: ClientesViaturasPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -214,6 +217,32 @@ export function ClientesViaturasPage({
           >
             <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span>XLSX</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const {exportCustomTablePdf} = await import('../utils/exporters');
+              const headers = ['Cliente', 'NIF', 'Telefone', 'Email', 'Morada', 'Viaturas'];
+              const rows = filteredClients.map((c) => {
+                const clientVehs = vehicles.filter((v) => v.clientId === c.id);
+                const vehsStr = clientVehs.map((v) => `${v.plate} (${v.brand} ${v.model})`).join(', ');
+                return [c.name, c.nif, c.phone, c.email || '-', c.address || '-', vehsStr || 'Sem viaturas'];
+              });
+              await exportCustomTablePdf(
+                'Diretório de Clientes & Viaturas',
+                `Total de clientes filtrados: ${filteredClients.length}`,
+                headers,
+                rows,
+                settings,
+                'zercauto-clientes-viaturas.pdf'
+              );
+              onNotify('Diretório de clientes exportado para PDF.');
+            }}
+            className="inline-flex items-center justify-center gap-gutter-xs px-gutter-sm py-gutter-sm min-h-[42px] rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap shrink-0"
+          >
+            <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <span>PDF</span>
           </button>
 
           <button

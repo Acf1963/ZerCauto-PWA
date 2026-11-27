@@ -1,13 +1,16 @@
-import {Lock, MonitorSmartphone, ShieldCheck, UserPlus, Users} from 'lucide-react';
+import {FileText, Lock, MonitorSmartphone, ShieldCheck, Trash2, UserPlus, Users} from 'lucide-react';
 import {useState} from 'react';
-import {newUuid, saveWorkshopUser} from '../db/dexie';
-import type {ModulePermission, UserRole, WorkshopUser} from '../types/database';
+import {db, newUuid, saveWorkshopUser} from '../db/dexie';
+import type {ModulePermission, UserRole, WorkshopUser, WorkshopSettings} from '../types/database';
+import {DEFAULT_SETTINGS} from '../db/seed';
 import {hashPassword} from '../utils/auth';
 import {Modal} from '../components/ui/Modal';
+import {exportCustomTablePdf} from '../utils/exporters';
 
 interface UtilizadoresAcessoPageProps {
   users: WorkshopUser[];
   currentUserId: string;
+  settings?: WorkshopSettings;
   onNotify: (msg: string) => void;
 }
 
@@ -31,6 +34,7 @@ const PERMISSION_LABELS: Array<{id: ModulePermission; label: string}> = [
 export function UtilizadoresAcessoPage({
   users,
   currentUserId,
+  settings = DEFAULT_SETTINGS,
   onNotify,
 }: UtilizadoresAcessoPageProps) {
   // New Credential Form
@@ -92,6 +96,17 @@ export function UtilizadoresAcessoPage({
     } else {
       await saveWorkshopUser({...user, active: false, sessionState: 'Suspenso'});
       onNotify(`Sessão de ${user.name} terminada e acesso suspenso.`);
+    }
+  };
+
+  const handleDeleteUser = async (user: WorkshopUser) => {
+    if (user.id === currentUserId) {
+      onNotify('Não pode eliminar o seu próprio utilizador atual.');
+      return;
+    }
+    if (window.confirm(`Tem certeza que pretende eliminar o utilizador ${user.name}?`)) {
+      await db.workshopUsers.delete(user.id);
+      onNotify(`Utilizador ${user.name} eliminado.`);
     }
   };
 
@@ -170,10 +185,37 @@ export function UtilizadoresAcessoPage({
             <h2 className="font-headline text-title-md text-light-on-surface">
               Equipa Credenciada
             </h2>
-            <span className="inline-flex items-center gap-1 font-label text-label-sm text-light-on-surface-variant">
-              <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{users.length} perfis</span>
-            </span>
+            <div className="flex items-center gap-gutter-sm">
+              <button
+                type="button"
+                onClick={async () => {
+                  const headers = ['Nome', 'Email', 'Perfil', 'Estado de Sessão'];
+                  const rows = users.map((u) => [
+                    u.name,
+                    u.email,
+                    u.role,
+                    !u.active || u.sessionState === 'Suspenso' ? 'Suspenso' : u.sessionState,
+                  ]);
+                  await exportCustomTablePdf(
+                    'Lista de Utilizadores & Acessos',
+                    `Total de utilizadores: ${users.length}`,
+                    headers,
+                    rows,
+                    settings,
+                    'zercauto-utilizadores-acessos.pdf'
+                  );
+                  onNotify('Relatório PDF de utilizadores exportado.');
+                }}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded border border-light-outline-variant bg-light-surface-container-lowest hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+              >
+                <FileText className="w-3.5 h-3.5 shrink-0" aria-hidden="true" />
+                <span>PDF</span>
+              </button>
+              <span className="inline-flex items-center gap-1 font-label text-label-sm text-light-on-surface-variant">
+                <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{users.length} perfis</span>
+              </span>
+            </div>
           </header>
 
           <div className="overflow-x-auto">
@@ -240,17 +282,27 @@ export function UtilizadoresAcessoPage({
                             Editar
                           </button>
                           {!isCurrent && (
-                            <button
-                              type="button"
-                              onClick={() => handleUserAction(u)}
-                              className={`px-2 py-1 rounded border font-label text-label-sm ${
-                                isSuspended
-                                  ? 'border-success/40 text-success dark:text-emerald-400 hover:bg-success-container'
-                                  : 'border-light-error/30 text-light-error dark:text-red-400 hover:bg-light-error-container'
-                              }`}
-                            >
-                              {isSuspended ? 'Reativar' : 'Forçar Logout'}
-                            </button>
+                            <div className="inline-flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleUserAction(u)}
+                                className={`px-2 py-1 rounded border font-label text-label-sm ${
+                                  isSuspended
+                                    ? 'border-success/40 text-success dark:text-emerald-400 hover:bg-success-container'
+                                    : 'border-light-error/30 text-light-error dark:text-red-400 hover:bg-light-error-container'
+                                }`}
+                              >
+                                {isSuspended ? 'Reativar' : 'Suspender'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteUser(u)}
+                                className="p-1 rounded border border-light-error/30 text-light-error dark:text-red-400 hover:bg-light-error-container"
+                                title="Eliminar utilizador"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                              </button>
+                            </div>
                           )}
                         </div>
                       </td>

@@ -4,6 +4,8 @@ import {
   ClipboardList,
   ClipboardPlus,
   CreditCard,
+  FileSpreadsheet,
+  FileText,
   Package,
   PackagePlus,
   TrendingUp,
@@ -11,6 +13,7 @@ import {
   Wrench,
 } from 'lucide-react';
 import {useMemo, useState} from 'react';
+import {ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid} from 'recharts';
 import {newUuid, saveStockItem, saveWorkOrder} from '../db/dexie';
 import type {
   Client,
@@ -32,6 +35,7 @@ import {
   getWorkOrderStatusStyle,
 } from '../utils/formatters';
 import {Modal} from '../components/ui/Modal';
+import {exportCustomTablePdf, downloadXlsxWorkbook} from '../utils/exporters';
 
 const STATUS_OPTIONS: WorkOrderStatus[] = [
   'Aberta',
@@ -69,6 +73,8 @@ export function DashboardPage({
   onNotify,
 }: DashboardPageProps) {
   // Interactive Modals triggered by clicking KPI cards
+  const [revenueModalOpen, setRevenueModalOpen] = useState(false);
+  const [activeModalOpen, setActiveModalOpen] = useState(false);
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [unpaidModalOpen, setUnpaidModalOpen] = useState(false);
 
@@ -129,6 +135,24 @@ export function DashboardPage({
     () => [...workOrders].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).slice(0, 5),
     [workOrders]
   );
+
+  // Last 6 months revenue data for Recharts BarChart
+  const monthlyRevenueData = useMemo(() => {
+    const months: Array<{periodKey: string; label: string; revenue: number; count: number}> = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const periodKey = `${year}-${month}`;
+      const label = d.toLocaleDateString('pt-PT', {month: 'short', year: 'numeric'});
+
+      const periodOrders = workOrders.filter((w) => w.periodKey === periodKey);
+      const revenue = periodOrders.reduce((acc, w) => acc + w.total, 0);
+      months.push({periodKey, label, revenue, count: periodOrders.length});
+    }
+    return months;
+  }, [workOrders]);
 
   const handleCopyRestockList = async () => {
     const lines = criticalItems.map(
@@ -273,7 +297,7 @@ export function DashboardPage({
           <button
             type="button"
             onClick={handleOpenNewOrder}
-            className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[42px] rounded bg-light-primary text-light-on-primary hover:bg-light-primary-container font-label text-label-lg whitespace-nowrap transition-colors duration-state-change"
+            className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[42px] rounded bg-light-primary text-light-on-primary hover:bg-light-primary-container font-label text-label-lg whitespace-nowrap transition-colors duration-state-change shadow-sm"
           >
             <ClipboardPlus className="w-4 h-4 shrink-0" aria-hidden="true" />
             <span>Nova Folha de Obra</span>
@@ -282,7 +306,7 @@ export function DashboardPage({
           <button
             type="button"
             onClick={handleOpenNewPart}
-            className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[42px] rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface font-label text-label-lg whitespace-nowrap transition-colors duration-state-change"
+            className="inline-flex items-center gap-gutter-xs px-gutter-md py-gutter-sm min-h-[42px] rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-light-on-surface font-label text-label-lg whitespace-nowrap transition-colors duration-state-change shadow-sm"
           >
             <PackagePlus className="w-4 h-4 shrink-0 text-light-primary dark:text-red-400" aria-hidden="true" />
             <span>Registar Peça</span>
@@ -292,13 +316,13 @@ export function DashboardPage({
 
       {/* 4 Interactive KPI Cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-gutter-md">
-        {/* Card 1: Faturamento Mensal */}
+        {/* Card 1: Faturamento Mensal (Interactive) */}
         <div
           role="button"
           tabIndex={0}
-          onClick={() => onNavigate('relatorios')}
+          onClick={() => setRevenueModalOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') onNavigate('relatorios');
+            if (e.key === 'Enter' || e.key === ' ') setRevenueModalOpen(true);
           }}
           className="bg-light-surface-container-lowest border border-light-outline-variant hover:border-light-primary rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-xs cursor-pointer transition-all duration-state-change hover:shadow-sm"
         >
@@ -311,18 +335,19 @@ export function DashboardPage({
           <p className="font-display text-headline-lg text-light-on-surface tabular-nums">
             {formatCurrency(monthlyRevenue, currency)}
           </p>
-          <span className="font-body text-body-sm text-light-on-surface-variant">
-            {currentMonthOrders.length} folhas de obra emitidas este mês
+          <span className="font-body text-body-sm text-light-primary dark:text-red-400 flex items-center gap-1 font-medium">
+            <span>{currentMonthOrders.length} folhas emitidas (Ver detalhe)</span>
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
         </div>
 
-        {/* Card 2: FOs Ativas */}
+        {/* Card 2: FOs Ativas (Interactive) */}
         <div
           role="button"
           tabIndex={0}
-          onClick={() => onNavigate('folhas-obra')}
+          onClick={() => setActiveModalOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') onNavigate('folhas-obra');
+            if (e.key === 'Enter' || e.key === ' ') setActiveModalOpen(true);
           }}
           className="bg-light-surface-container-lowest border border-light-outline-variant hover:border-light-primary rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-xs cursor-pointer transition-all duration-state-change hover:shadow-sm"
         >
@@ -335,8 +360,9 @@ export function DashboardPage({
           <p className="font-display text-headline-lg text-light-on-surface tabular-nums">
             {activeOrders.length} FOs
           </p>
-          <span className="font-body text-body-sm text-light-on-surface-variant">
-            Em execução ou a aguardar diagnóstico/peças
+          <span className="font-body text-body-sm text-light-primary dark:text-red-400 flex items-center gap-1 font-medium">
+            <span>Em execução ou diagnóstico (Ver)</span>
+            <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
           </span>
         </div>
 
@@ -386,7 +412,7 @@ export function DashboardPage({
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') setUnpaidModalOpen(true);
           }}
-          className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-xs cursor-pointer hover:border-light-primary transition-all duration-state-change hover:shadow-sm"
+          className="bg-light-surface-container-lowest border border-light-outline-variant hover:border-light-primary rounded-lg p-gutter-md flex flex-col justify-between gap-gutter-xs cursor-pointer transition-all duration-state-change hover:shadow-sm"
         >
           <header className="flex items-center justify-between gap-gutter-sm">
             <span className="font-label text-label-lg text-light-on-surface-variant">
@@ -404,10 +430,50 @@ export function DashboardPage({
         </div>
       </section>
 
-      {/* Main Split: Recent Work Orders & Shortcuts */}
+      {/* Main Split: Recharts Monthly Revenue Bar Chart & Recent Work Orders / Shortcuts */}
       <section className="grid grid-cols-1 xl:grid-cols-12 gap-gutter-lg items-start">
-        {/* Left: Recent Work Orders (7 cols) */}
-        <div className="xl:col-span-7 flex flex-col gap-gutter-md">
+        {/* Left Column: Recharts Bar Chart + Recent Work Orders (7 cols) */}
+        <div className="xl:col-span-7 flex flex-col gap-gutter-lg">
+          {/* Recharts Monthly Revenue Bar Chart */}
+          <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-md">
+            <header className="flex items-center justify-between gap-gutter-sm pb-2 border-b border-light-outline-variant">
+              <div>
+                <h3 className="font-headline text-title-md text-light-on-surface">
+                  Faturação Mensal Acumulada (Últimos 6 Meses)
+                </h3>
+                <p className="font-body text-body-sm text-light-on-surface-variant">
+                  Evolução do volume de faturação em {currency}
+                </p>
+              </div>
+              <TrendingUp className="w-5 h-5 text-light-primary dark:text-red-400 shrink-0" aria-hidden="true" />
+            </header>
+
+            <div className="w-full h-[260px] pt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyRevenueData} margin={{top: 10, right: 10, left: -20, bottom: 0}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#cbd5e1" opacity={0.4} />
+                  <XAxis dataKey="label" stroke="#64748b" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#64748b" fontSize={12} tickLine={false} />
+                  <Tooltip
+                    formatter={(value: any) => [
+                      formatCurrency(Number(value ?? 0), currency),
+                      'Faturação',
+                    ]}
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      borderColor: '#334155',
+                      borderRadius: '6px',
+                      color: '#f8fafc',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#991b1b" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
+
+          {/* Recent Work Orders List */}
           <div className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg overflow-hidden flex flex-col">
             <header className="px-gutter-md py-gutter-sm bg-light-surface-container-low border-b border-light-outline-variant flex items-center justify-between">
               <h3 className="font-headline text-title-md text-light-on-surface">
@@ -463,72 +529,235 @@ export function DashboardPage({
           </div>
         </div>
 
-        {/* Right: Quick Navigation Shortcuts (5 cols) */}
+        {/* Right Column: Compact Button-like Shortcuts (5 cols) */}
         <div className="xl:col-span-5 flex flex-col gap-gutter-md">
           <article className="bg-light-surface-container-lowest border border-light-outline-variant rounded-lg p-gutter-md flex flex-col gap-gutter-md">
-            <header className="pb-gutter-sm border-b border-light-outline-variant">
+            <header className="pb-2 border-b border-light-outline-variant">
               <h3 className="font-headline text-title-md text-light-on-surface">
                 Atalhos Rápidos
               </h3>
               <p className="font-body text-body-sm text-light-on-surface-variant">
-                Aceda rapidamente aos módulos principais de gestão da oficina.
+                Aceda rapidamente aos módulos principais da oficina.
               </p>
             </header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-gutter-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
                 onClick={() => onNavigate('folhas-obra')}
-                className="p-gutter-md rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex flex-col gap-1 transition-colors duration-state-change"
+                className="px-3 py-2.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex items-center gap-2.5 transition-colors duration-state-change group"
               >
-                <ClipboardList className="w-5 h-5 text-light-primary dark:text-red-400 mb-1" aria-hidden="true" />
-                <span className="font-label text-label-lg text-light-on-surface">Folhas de Obra</span>
-                <span className="font-body text-body-sm text-light-on-surface-variant">
-                  Abrir orçamento ou diagnóstico
-                </span>
+                <ClipboardList className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0 group-hover:scale-110 transition-transform" aria-hidden="true" />
+                <span className="font-label text-label-lg text-light-on-surface truncate">Folhas de Obra</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onNavigate('stock-fornecedores')}
-                className="p-gutter-md rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex flex-col gap-1 transition-colors duration-state-change"
+                className="px-3 py-2.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex items-center gap-2.5 transition-colors duration-state-change group"
               >
-                <Package className="w-5 h-5 text-light-primary dark:text-red-400 mb-1" aria-hidden="true" />
-                <span className="font-label text-label-lg text-light-on-surface">Stock &amp; Inventário</span>
-                <span className="font-body text-body-sm text-light-on-surface-variant">
-                  Gerir peças e contagem física
-                </span>
+                <Package className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0 group-hover:scale-110 transition-transform" aria-hidden="true" />
+                <span className="font-label text-label-lg text-light-on-surface truncate">Stock &amp; Inventário</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onNavigate('pagamentos')}
-                className="p-gutter-md rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex flex-col gap-1 transition-colors duration-state-change"
+                className="px-3 py-2.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex items-center gap-2.5 transition-colors duration-state-change group"
               >
-                <CreditCard className="w-5 h-5 text-light-primary dark:text-red-400 mb-1" aria-hidden="true" />
-                <span className="font-label text-label-lg text-light-on-surface">Finanças &amp; Pagamentos</span>
-                <span className="font-body text-body-sm text-light-on-surface-variant">
-                  Registar TPA ou Multicaixa
-                </span>
+                <CreditCard className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0 group-hover:scale-110 transition-transform" aria-hidden="true" />
+                <span className="font-label text-label-lg text-light-on-surface truncate">Finanças &amp; Pagamentos</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => onNavigate('relatorios')}
-                className="p-gutter-md rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex flex-col gap-1 transition-colors duration-state-change"
+                className="px-3 py-2.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container text-left flex items-center gap-2.5 transition-colors duration-state-change group"
               >
-                <TrendingUp className="w-5 h-5 text-light-primary dark:text-red-400 mb-1" aria-hidden="true" />
-                <span className="font-label text-label-lg text-light-on-surface">Relatórios Mensais</span>
-                <span className="font-body text-body-sm text-light-on-surface-variant">
-                  Exportar PDF ou Excel
-                </span>
+                <TrendingUp className="w-4 h-4 text-light-primary dark:text-red-400 shrink-0 group-hover:scale-110 transition-transform" aria-hidden="true" />
+                <span className="font-label text-label-lg text-light-on-surface truncate">Relatórios Mensais</span>
               </button>
             </div>
           </article>
         </div>
       </section>
 
-      {/* Modal: Interactive Critical Stock & Restock Suggestion */}
+      {/* Modal 1: Faturamento Mensal (November Details) with PDF & XLSX export */}
+      <Modal
+        open={revenueModalOpen}
+        onClose={() => setRevenueModalOpen(false)}
+        title={`Detalhe de Faturamento (${formatPeriodLabel(currentPeriod)})`}
+        subtitle={`Exibe ${currentMonthOrders.length} folhas de obra emitidas este mês · Total: ${formatCurrency(monthlyRevenue, currency)}`}
+      >
+        <div className="flex flex-col gap-gutter-md">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado', 'Pagamento', `Total (${currency})`];
+                const rows = currentMonthOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.status,
+                  wo.paymentStatus,
+                  formatCurrency(wo.total, currency),
+                ]);
+                await exportCustomTablePdf(
+                  `Faturação Mensal - ${formatPeriodLabel(currentPeriod)}`,
+                  `Total Faturado: ${formatCurrency(monthlyRevenue, currency)} (${currentMonthOrders.length} folhas)`,
+                  headers,
+                  rows,
+                  settings,
+                  `zercauto-faturacao-${currentPeriod}.pdf`
+                );
+                onNotify('Relatório PDF de faturamento exportado com sucesso.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado', 'Pagamento', `Total (${currency})`];
+                const rows = currentMonthOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.status,
+                  wo.paymentStatus,
+                  wo.total,
+                ]);
+                downloadXlsxWorkbook(`zercauto-faturacao-${currentPeriod}.xlsx`, [
+                  {name: 'Faturação Mensal', headers, rows},
+                ]);
+                onNotify('Relatório XLSX de faturamento exportado com sucesso.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar XLSX</span>
+            </button>
+          </div>
+
+          {currentMonthOrders.length === 0 ? (
+            <div className="p-gutter-lg text-center font-body text-body-md text-light-on-surface-variant">
+              Nenhuma folha de obra emitida neste período.
+            </div>
+          ) : (
+            <div className="divide-y divide-light-outline-variant border border-light-outline-variant rounded overflow-hidden max-h-[60vh] overflow-y-auto">
+              {currentMonthOrders.map((wo) => (
+                <div key={wo.id} className="p-gutter-md flex items-center justify-between gap-gutter-sm bg-light-surface-container-lowest">
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-title-sm text-light-primary dark:text-red-400 font-semibold">{wo.code}</span>
+                      <span className={`px-2 py-0.5 rounded font-label text-label-sm ${getWorkOrderStatusStyle(wo.status)}`}>{wo.status}</span>
+                    </div>
+                    <span className="font-body text-body-sm text-light-on-surface-variant">{wo.clientName} · {wo.vehiclePlate}</span>
+                  </div>
+                  <span className="font-mono text-title-md text-light-on-surface font-semibold tabular-nums">{formatCurrency(wo.total, currency)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal 2: Folhas em Oficina (Active Orders) with PDF & XLSX export */}
+      <Modal
+        open={activeModalOpen}
+        onClose={() => setActiveModalOpen(false)}
+        title="Folhas de Obra em Oficina (Ativas)"
+        subtitle={`Exibe ${activeOrders.length} folhas de obra atualmente em execução ou diagnóstico`}
+      >
+        <div className="flex flex-col gap-gutter-md">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado', 'Diagnóstico', `Total (${currency})`];
+                const rows = activeOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.status,
+                  wo.diagnosis,
+                  formatCurrency(wo.total, currency),
+                ]);
+                await exportCustomTablePdf(
+                  'Folhas de Obra em Oficina (Ativas)',
+                  `Total Ativas: ${activeOrders.length} folhas`,
+                  headers,
+                  rows,
+                  settings,
+                  'zercauto-folhas-oficina-ativas.pdf'
+                );
+                onNotify('Relatório PDF de folhas ativas exportado.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado', 'Diagnóstico', `Total (${currency})`];
+                const rows = activeOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.status,
+                  wo.diagnosis,
+                  wo.total,
+                ]);
+                downloadXlsxWorkbook('zercauto-folhas-oficina-ativas.xlsx', [
+                  {name: 'Folhas Ativas', headers, rows},
+                ]);
+                onNotify('Relatório XLSX de folhas ativas exportado.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar XLSX</span>
+            </button>
+          </div>
+
+          {activeOrders.length === 0 ? (
+            <div className="p-gutter-lg text-center font-body text-body-md text-success dark:text-emerald-400">
+              Não existem folhas de obra ativas neste momento.
+            </div>
+          ) : (
+            <div className="divide-y divide-light-outline-variant border border-light-outline-variant rounded overflow-hidden max-h-[60vh] overflow-y-auto">
+              {activeOrders.map((wo) => (
+                <div key={wo.id} className="p-gutter-md flex items-center justify-between gap-gutter-sm bg-light-surface-container-lowest">
+                  <div className="flex flex-col min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-title-sm text-light-primary dark:text-red-400 font-semibold">{wo.code}</span>
+                      <span className={`px-2 py-0.5 rounded font-label text-label-sm ${getWorkOrderStatusStyle(wo.status)}`}>{wo.status}</span>
+                    </div>
+                    <span className="font-body text-body-sm text-light-on-surface-variant">{wo.clientName} · {wo.vehiclePlate} ({wo.diagnosis})</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveModalOpen(false);
+                      onNavigate('folhas-obra');
+                    }}
+                    className="px-3 py-1.5 rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-sm text-light-primary dark:text-red-400 whitespace-nowrap"
+                  >
+                    Abrir em FOs
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* Modal 3: Alertas de Stock & Sugestão de Encomenda with PDF & XLSX export */}
       <Modal
         open={stockModalOpen}
         onClose={() => setStockModalOpen(false)}
@@ -542,7 +771,48 @@ export function DashboardPage({
             </div>
           ) : (
             <>
-              <div className="flex justify-end">
+              <div className="flex flex-wrap justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const headers = ['SKU', 'Designação', 'Fornecedor', 'Stock Atual', 'Stock Mínimo', 'Sugestão Encomenda'];
+                    const rows = criticalItems.map((item) => {
+                      const suggestedOrder = Math.max(item.minQuantity * 3 - item.quantity, item.minQuantity);
+                      return [item.sku, item.name, item.supplierName, `${item.quantity} ${item.unit}`, `${item.minQuantity} ${item.unit}`, `+${suggestedOrder} ${item.unit}`];
+                    });
+                    await exportCustomTablePdf(
+                      'Alertas de Stock Crítico & Sugestão de Encomenda',
+                      `Total de peças críticas: ${criticalItems.length}`,
+                      headers,
+                      rows,
+                      settings,
+                      'zercauto-alertas-stock.pdf'
+                    );
+                    onNotify('Relatório PDF de stock crítico exportado.');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+                >
+                  <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span>Exportar PDF</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const headers = ['SKU', 'Designação', 'Fornecedor', 'Stock Atual', 'Stock Mínimo', 'Sugestão Encomenda'];
+                    const rows = criticalItems.map((item) => {
+                      const suggestedOrder = Math.max(item.minQuantity * 3 - item.quantity, item.minQuantity);
+                      return [item.sku, item.name, item.supplierName, item.quantity, item.minQuantity, suggestedOrder];
+                    });
+                    downloadXlsxWorkbook('zercauto-alertas-stock.xlsx', [
+                      {name: 'Stock Crítico', headers, rows},
+                    ]);
+                    onNotify('Relatório XLSX de stock crítico exportado.');
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+                >
+                  <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  <span>Exportar XLSX</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleCopyRestockList}
@@ -552,7 +822,7 @@ export function DashboardPage({
                 </button>
               </div>
 
-              <div className="divide-y divide-light-outline-variant border border-light-outline-variant rounded overflow-hidden">
+              <div className="divide-y divide-light-outline-variant border border-light-outline-variant rounded overflow-hidden max-h-[50vh] overflow-y-auto">
                 {criticalItems.map((item) => {
                   const suggestedOrder = Math.max(
                     item.minQuantity * 3 - item.quantity,
@@ -602,14 +872,64 @@ export function DashboardPage({
         </div>
       </Modal>
 
-      {/* Modal: Interactive Unpaid Work Orders */}
+      {/* Modal 4: FOs Por Liquidar (Unpaid Work Orders) with PDF & XLSX export */}
       <Modal
         open={unpaidModalOpen}
         onClose={() => setUnpaidModalOpen(false)}
         title="Folhas de Obra Por Liquidar"
-        subtitle={`Exibe ${unpaidOrders.length} folhas de obra com pagamento pendente ou parcial`}
+        subtitle={`Exibe ${unpaidOrders.length} folhas de obra com pagamento pendente ou parcial · Total: ${formatCurrency(unpaidTotal, currency)}`}
       >
         <div className="flex flex-col gap-gutter-md">
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado Pagamento', `Total (${currency})`];
+                const rows = unpaidOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.paymentStatus,
+                  formatCurrency(wo.total, currency),
+                ]);
+                await exportCustomTablePdf(
+                  'Folhas de Obra Por Liquidar',
+                  `Total Pendente: ${formatCurrency(unpaidTotal, currency)} (${unpaidOrders.length} folhas)`,
+                  headers,
+                  rows,
+                  settings,
+                  'zercauto-folhas-por-liquidar.pdf'
+                );
+                onNotify('Relatório PDF de folhas por liquidar exportado.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileText className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar PDF</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const headers = ['Código FO', 'Cliente', 'Viatura', 'Estado Pagamento', `Total (${currency})`];
+                const rows = unpaidOrders.map((wo) => [
+                  wo.code,
+                  wo.clientName,
+                  `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                  wo.paymentStatus,
+                  wo.total,
+                ]);
+                downloadXlsxWorkbook('zercauto-folhas-por-liquidar.xlsx', [
+                  {name: 'Por Liquidar', headers, rows},
+                ]);
+                onNotify('Relatório XLSX de folhas por liquidar exportado.');
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded border border-light-outline-variant bg-light-surface-container-low hover:bg-light-surface-container font-label text-label-sm text-light-on-surface"
+            >
+              <FileSpreadsheet className="w-4 h-4 shrink-0" aria-hidden="true" />
+              <span>Exportar XLSX</span>
+            </button>
+          </div>
+
           {unpaidOrders.length === 0 ? (
             <div className="p-gutter-lg text-center font-body text-body-md text-success dark:text-emerald-400">
               Todas as folhas de obra emitidas encontram-se liquidadas!
