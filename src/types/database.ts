@@ -19,10 +19,9 @@ export type WorkOrderStatus =
   | 'Pronta para Faturar'
   | 'Faturada';
 
-export type PaymentStatus = 'Pendente' | 'Link Online' | 'Parcial' | 'Liquidado';
+export type PaymentStatus = 'Pendente' | 'Parcial' | 'Liquidado';
 
 export type PaymentMethod =
-  | 'Pagamento Online (Link / Ref.)'
   | 'TPA / Multicaixa'
   | 'Transferência Bancária'
   | 'Numerário';

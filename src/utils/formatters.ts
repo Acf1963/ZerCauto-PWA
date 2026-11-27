@@ -108,8 +108,6 @@ export function getPaymentStatusStyle(status: PaymentStatus): string {
   switch (status) {
     case 'Liquidado':
       return 'bg-success-container text-on-success-container';
-    case 'Link Online':
-      return 'bg-light-secondary-container text-light-on-secondary-container';
     case 'Parcial':
       return 'bg-warning-container text-on-warning-container';
     case 'Pendente':

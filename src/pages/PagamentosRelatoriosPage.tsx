@@ -35,7 +35,6 @@ interface PagamentosRelatoriosPageProps {
 }
 
 const PAYMENT_METHODS: PaymentMethod[] = [
-  'Pagamento Online (Link / Ref.)',
   'TPA / Multicaixa',
   'Transferência Bancária',
   'Numerário',
@@ -59,7 +58,7 @@ export function PagamentosRelatoriosPage({
   const [selectedPeriod, setSelectedPeriod] = useState<string>(availablePeriods[0] ?? '2026-11');
   const [selectedOnlineOrderId, setSelectedOnlineOrderId] = useState<string>('');
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>(
-    'Pagamento Online (Link / Ref.)'
+    'TPA / Multicaixa'
   );
   const [registerModalOpen, setRegisterModalOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -221,7 +220,7 @@ export function PagamentosRelatoriosPage({
       paymentLink: link,
       paymentMethod: selectedMethod,
       paymentStatus:
-        onlineTargetOrder.paymentStatus === 'Liquidado' ? 'Liquidado' : 'Link Online',
+        onlineTargetOrder.paymentStatus === 'Liquidado' ? 'Liquidado' : 'Parcial',
     });
     try {
       await navigator.clipboard.writeText(link);

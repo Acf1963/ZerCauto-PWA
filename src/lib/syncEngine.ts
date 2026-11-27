@@ -62,14 +62,12 @@ const SQL_TO_WO_STATUS: Record<string, WorkOrderStatus> = {
 const PAY_STATUS_TO_SQL: Record<PaymentStatus, string> = {
   Pendente: 'pendente',
   Parcial: 'parcial',
-  'Link Online': 'link_online',
   Liquidado: 'liquidado',
 };
 
 const SQL_TO_PAY_STATUS: Record<string, PaymentStatus> = {
   pendente: 'Pendente',
   parcial: 'Parcial',
-  link_online: 'Link Online',
   liquidado: 'Liquidado',
 };
 
@@ -77,14 +75,13 @@ const PAY_METHOD_TO_SQL: Record<PaymentMethod, string> = {
   'TPA / Multicaixa': 'multicaixa',
   'Transferência Bancária': 'transferencia',
   Numerário: 'numerario',
-  'Pagamento Online (Link / Ref.)': 'link_online',
 };
 
 const SQL_TO_PAY_METHOD: Record<string, PaymentMethod> = {
   multicaixa: 'TPA / Multicaixa',
   transferencia: 'Transferência Bancária',
   numerario: 'Numerário',
-  link_online: 'Pagamento Online (Link / Ref.)',
+  link_online: 'TPA / Multicaixa',
 };
 
 const SQL_TO_USER_ROLE: Record<string, UserRole> = {

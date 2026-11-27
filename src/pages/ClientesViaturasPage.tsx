@@ -324,7 +324,35 @@ export function ClientesViaturasPage({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-gutter-sm shrink-0">
+                <div className="flex flex-wrap items-center gap-gutter-sm shrink-0">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const {exportCustomTablePdf} = await import('../utils/exporters');
+                      const headers = ['FO Code', 'Data', 'Viatura', 'Estado', 'Pagamento', `Total (${currency})`];
+                      const rows = vehicleHistory.map((wo) => [
+                        wo.code,
+                        wo.openedAt,
+                        `${wo.vehiclePlate} (${wo.vehicleLabel})`,
+                        wo.status,
+                        wo.paymentStatus,
+                        formatCurrency(wo.total, currency),
+                      ]);
+                      await exportCustomTablePdf(
+                        `Histórico de Intervenções - ${activeClient.name} (NIF: ${activeClient.nif})`,
+                        `Total de intervenções: ${vehicleHistory.length}`,
+                        headers,
+                        rows,
+                        settings,
+                        `zercauto-historico-${activeClient.name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`
+                      );
+                      onNotify(`PDF do histórico de ${activeClient.name} gerado com sucesso.`);
+                    }}
+                    className="inline-flex items-center gap-gutter-xs px-gutter-sm py-1.5 min-h-[36px] rounded border border-light-outline-variant hover:bg-light-surface-container font-label text-label-lg text-light-on-surface whitespace-nowrap"
+                  >
+                    <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>Gerar PDF</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => openEditClientModal(activeClient)}

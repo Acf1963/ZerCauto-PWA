@@ -151,22 +151,25 @@ async function applyPdfWorkshopHeader(
 
   // Document Title (Right)
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
+  doc.setFontSize(10.5);
   doc.setTextColor(153, 27, 27);
-  doc.text(documentTitle, pageWidth - 14, 14, {align: 'right'});
+  const splitTitle = doc.splitTextToSize(documentTitle, 80);
+  doc.text(splitTitle, pageWidth - 14, 12, {align: 'right'});
 
+  const titleHeight = splitTitle.length * 4.2;
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85);
-  doc.text(documentSubtitle, pageWidth - 14, 19.5, {align: 'right'});
-  doc.text(`Emitido em: ${formatTodayPT()}`, pageWidth - 14, 24, {align: 'right'});
+  doc.text(documentSubtitle, pageWidth - 14, 12 + titleHeight + 0.5, {align: 'right'});
+  doc.text(`Emitido em: ${formatTodayPT()}`, pageWidth - 14, 12 + titleHeight + 5, {align: 'right'});
 
   // Divider line
+  const dividerY = Math.max(29, 12 + titleHeight + 8);
   doc.setDrawColor(203, 213, 225);
   doc.setLineWidth(0.35);
-  doc.line(14, 29, pageWidth - 14, 29);
+  doc.line(14, dividerY, pageWidth - 14, dividerY);
 
-  return 34;
+  return dividerY + 5;
 }
 
 function applyPdfPageFooters(doc: jsPDF, footerText?: string): void {

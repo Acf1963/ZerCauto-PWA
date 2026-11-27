@@ -318,13 +318,10 @@ export function FolhasObraPage({
   };
 
   const handleGeneratePaymentLink = async (order: WorkOrder) => {
-    const slug = order.code.toLowerCase();
-    const link = order.paymentLink ?? `https://pay.zercauto.ao/${slug}`;
     const updated: WorkOrder = {
       ...order,
-      paymentLink: link,
-      paymentMethod: order.paymentMethod ?? 'Pagamento Online (Link / Ref.)',
-      paymentStatus: order.paymentStatus === 'Liquidado' ? 'Liquidado' : 'Link Online',
+      paymentMethod: order.paymentMethod ?? 'TPA / Multicaixa',
+      paymentStatus: order.paymentStatus === 'Liquidado' ? 'Liquidado' : 'Parcial',
     };
     await saveWorkOrder(updated);
     setPaymentModalOrder(updated);
@@ -333,9 +330,9 @@ export function FolhasObraPage({
   const handleCopyLink = async (link: string) => {
     try {
       await navigator.clipboard.writeText(link);
-      onNotify('Link de pagamento copiado para a área de transferência.');
+      onNotify('Referência de pagamento copiada para a área de transferência.');
     } catch {
-      onNotify('Link pronto: ' + link);
+      onNotify('Referência pronta: ' + link);
     }
   };
 
@@ -344,7 +341,7 @@ export function FolhasObraPage({
       ...order,
       status: 'Faturada',
       paymentStatus: 'Liquidado',
-      paymentMethod: 'Pagamento Online (Link / Ref.)',
+      paymentMethod: 'TPA / Multicaixa',
     };
     await saveWorkOrder(updated);
     await savePaymentRecord({
@@ -353,9 +350,9 @@ export function FolhasObraPage({
       workOrderCode: order.code,
       clientName: order.clientName,
       amount: order.total,
-      method: 'Pagamento Online (Link / Ref.)',
+      method: 'TPA / Multicaixa',
       status: 'Liquidado',
-      reference: `ONL-${order.code.slice(-4)}`,
+      reference: `TPA-${order.code.slice(-4)}`,
       periodKey: order.periodKey,
       paidAt: formatTodayPT(),
       updatedAt: new Date().toISOString(),
@@ -1180,11 +1177,11 @@ export function FolhasObraPage({
         </form>
       </Modal>
 
-      {/* Modal: Link de Pagamento Online */}
+      {/* Modal: Pagamento TPA / Multicaixa */}
       <Modal
         open={Boolean(paymentModalOrder)}
         onClose={() => setPaymentModalOrder(null)}
-        title="Link de Pagamento Online"
+        title="Registo de Pagamento TPA / Multicaixa"
         subtitle={
           paymentModalOrder
             ? `Referência gerada para ${paymentModalOrder.code}`
@@ -1194,7 +1191,7 @@ export function FolhasObraPage({
         {paymentModalOrder && (
           <div className="flex flex-col gap-gutter-md">
             <p className="font-body text-body-md text-light-on-surface">
-              Referência gerada para liquidação online da folha{' '}
+              Referência gerada para liquidação da folha{' '}
               <span className="font-mono font-semibold text-light-primary dark:text-red-400">
                 {paymentModalOrder.code}
               </span>{' '}
